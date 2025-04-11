@@ -3,8 +3,9 @@ import pandas as pd
 import itertools
 from collections import Counter
 import os
+from datetime import date
 
-st.set_page_config(page_title="Eurojackpot Mastermind (Merge Mode)", layout="centered")
+st.set_page_config(page_title="Eurojackpot Mastermind (Manual + Merge Mode)", layout="centered")
 
 MASTER_FILE = "eurojackpot_master_data.csv"
 
@@ -34,68 +35,79 @@ def merge_new_draws(master_df, new_df):
 
     combined_df = pd.concat([master_df, new_df], ignore_index=True)
 
-    # Convert to string temporarily to allow deduplication
     combined_df['Main_Str'] = combined_df['Main_Numbers'].apply(str)
     combined_df['Euro_Str'] = combined_df['Euro_Numbers'].apply(str)
     combined_df = combined_df.drop_duplicates(subset=['Draw_Date', 'Main_Str', 'Euro_Str'])
 
-    # Drop helper columns
     combined_df = combined_df.drop(columns=['Main_Str', 'Euro_Str'])
     combined_df = combined_df.sort_values(by='Draw_Date').reset_index(drop=True)
 
     return combined_df
 
-# ---- Streamlit App ----
-
-st.title("📊 Eurojackpot Mastermind (Merge Mode)")
+# Load existing data
+st.title("🎯 Eurojackpot Mastermind (Manual + Merge)")
 master_df = load_master_data()
 
-uploaded_file = st.file_uploader("📂 Upload NEW draws CSV (same format)", type=["csv"])
+# --------- Manual Entry Form ---------
+st.subheader("✍️ Add New Draw Manually")
 
+with st.form("manual_entry_form"):
+    draw_date = st.date_input("Draw Date", value=date.today())
+    col1, col2, col3, col4, col5 = st.columns(5)
+    main_numbers = [
+        col1.number_input("Main 1", 1, 50, key="m1"),
+        col2.number_input("Main 2", 1, 50, key="m2"),
+        col3.number_input("Main 3", 1, 50, key="m3"),
+        col4.number_input("Main 4", 1, 50, key="m4"),
+        col5.number_input("Main 5", 1, 50, key="m5")
+    ]
+    col6, col7 = st.columns(2)
+    euro_numbers = [
+        col6.number_input("Euro 1", 1, 12, key="e1"),
+        col7.number_input("Euro 2", 1, 12, key="e2")
+    ]
+    submitted = st.form_submit_button("➕ Add Draw")
+
+if submitted:
+    new_row = pd.DataFrame([{
+        "Draw_Date": str(draw_date),
+        "Main_Numbers": str(sorted(main_numbers)),
+        "Euro_Numbers": str(sorted(euro_numbers))
+    }])
+    master_df = merge_new_draws(master_df, new_row)
+    master_df.to_csv(MASTER_FILE, index=False)
+    st.success("✅ Draw added and saved!")
+
+# --------- Optional CSV Upload ---------
+st.subheader("📂 Or Upload New Draws (CSV)")
+uploaded_file = st.file_uploader("Upload your new draw data", type=["csv"])
 if uploaded_file:
     try:
         new_df = pd.read_csv(uploaded_file)
         if 'Draw_Date' in new_df.columns and 'Main_Numbers' in new_df.columns and 'Euro_Numbers' in new_df.columns:
             master_df = merge_new_draws(master_df, new_df)
-            st.success("✅ New data merged successfully!")
-            st.dataframe(master_df)
-
-            # Save updated master file
             master_df.to_csv(MASTER_FILE, index=False)
-
-            if st.button("Run Frequency Analysis"):
-                main_freq, euro_freq = analyze_frequency(master_df)
-                st.session_state['main_freq'] = main_freq.copy()
-                st.session_state['euro_freq'] = euro_freq.copy()
-
-            if 'main_freq' in st.session_state:
-                st.subheader("🔥 Main Number Frequency")
-                st.dataframe(st.session_state['main_freq'])
-                st.subheader("🔵 Euro Number Frequency")
-                st.dataframe(st.session_state['euro_freq'])
-
-                if st.button("🎯 Generate Smart Solo Pick"):
-                    main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
-                    st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
+            st.success("✅ Uploaded CSV merged and saved!")
         else:
-            st.error("❌ Your CSV must include 'Draw_Date', 'Main_Numbers', and 'Euro_Numbers'.")
+            st.error("CSV must include Draw_Date, Main_Numbers, and Euro_Numbers")
     except Exception as e:
-        st.error(f"⚠️ Something went wrong: {e}")
-else:
-    st.info("⬆️ Upload your new draw data to update the system.")
-    st.dataframe(master_df)
+        st.error(f"⚠️ Error reading CSV: {e}")
 
-    if st.button("Run Frequency Analysis"):
-        main_freq, euro_freq = analyze_frequency(master_df)
-        st.session_state['main_freq'] = main_freq.copy()
-        st.session_state['euro_freq'] = euro_freq.copy()
+# --------- Data & Tools ---------
+st.subheader("📅 All Draw Data")
+st.dataframe(master_df)
 
-    if 'main_freq' in st.session_state:
-        st.subheader("🔥 Main Number Frequency")
-        st.dataframe(st.session_state['main_freq'])
-        st.subheader("🔵 Euro Number Frequency")
-        st.dataframe(st.session_state['euro_freq'])
+if st.button("📊 Run Frequency Analysis"):
+    main_freq, euro_freq = analyze_frequency(master_df)
+    st.session_state['main_freq'] = main_freq.copy()
+    st.session_state['euro_freq'] = euro_freq.copy()
 
-        if st.button("🎯 Generate Smart Solo Pick"):
-            main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
-            st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
+if 'main_freq' in st.session_state:
+    st.subheader("🔥 Main Number Frequency")
+    st.dataframe(st.session_state['main_freq'])
+    st.subheader("🔵 Euro Number Frequency")
+    st.dataframe(st.session_state['euro_freq'])
+
+    if st.button("🎯 Generate Smart Solo Pick"):
+        main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
+        st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
