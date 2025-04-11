@@ -19,17 +19,27 @@ def fetch_latest_draws():
     draw_data = []
     results = soup.select('div.results li')
 
-    for result in results[:10]:  # last 10 draws
-        date_text = result.select_one('.date').text.strip()
-        numbers = [int(n.text.strip()) for n in result.select('.balls .ball')]
-        euro_numbers = [int(n.text.strip()) for n in result.select('.euro')]
+    for result in results[:10]:
+        try:
+            date_elem = result.select_one('.date')
+            if not date_elem:
+                continue  # skip if date is missing
+            date_text = date_elem.text.strip()
 
-        draw_data.append({
-            'Draw_Date': date_text,
-            'Main_Numbers': sorted(numbers[:5]),
-            'Euro_Numbers': sorted(euro_numbers[:2])
-        })
+            numbers = [int(n.text.strip()) for n in result.select('.balls .ball')]
+            euro_numbers = [int(n.text.strip()) for n in result.select('.euro')]
+
+            draw_data.append({
+                'Draw_Date': date_text,
+                'Main_Numbers': sorted(numbers[:5]),
+                'Euro_Numbers': sorted(euro_numbers[:2])
+            })
+        except Exception as e:
+            print("Skipping draw due to error:", e)
+            continue
+
     return pd.DataFrame(draw_data)
+
 
 def analyze_frequency(df):
     all_main = list(itertools.chain.from_iterable(df['Main_Numbers']))
