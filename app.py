@@ -1,5 +1,6 @@
 import os
 os.environ['STREAMLIT_BROWSER_GATHER_USAGE_STATS'] = 'false'
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -19,7 +20,7 @@ def fetch_latest_draws():
     draw_data = []
     results = soup.select('div.results li')
 
-    for result in results[:10]:
+    for result in results[:10]:  # last 10 draws
         try:
             date_elem = result.select_one('.date')
             if not date_elem:
@@ -39,7 +40,6 @@ def fetch_latest_draws():
             continue
 
     return pd.DataFrame(draw_data)
-
 
 def analyze_frequency(df):
     all_main = list(itertools.chain.from_iterable(df['Main_Numbers']))
