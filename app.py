@@ -132,9 +132,14 @@ if st.button("📊 Run Frequency Analysis"):
     st.session_state.update({'main_freq': main_freq, 'euro_freq': euro_freq})
 
 if 'main_freq' in st.session_state:
-    if st.button("🎯 Generate Smart Solo Pick"):
-        main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
-        st.success(f"Solo Pick: {main} + {euro}")
+    st.subheader("🔐 arknziel")
+    password = st.text_input("Enter password to unlock this tool", type="password")
+    if password == "eurosecret":
+        if st.button("🔐 Generate arknziel Pick"):
+            main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
+            st.success(f"🎯 Your Pick: {main} + {euro}")
+    elif password:
+        st.warning("❌ Incorrect password. Try again.")
 
     strategy_mode = st.radio("🎯 Pick Strategy:", ["Rare Focus", "Small Win Strategy", "Minimum Prize Guaranteed"])
     avoid_popular = st.checkbox("🛡️ Avoid Popular Picks", value=True)
