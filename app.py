@@ -1,47 +1,9 @@
-import os
-os.environ['STREAMLIT_BROWSER_GATHER_USAGE_STATS'] = 'false'
-
 import streamlit as st
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-from collections import Counter
 import itertools
+from collections import Counter
 
 st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
-
-@st.cache_data
-def fetch_latest_draws():
-    url = "https://www.euro-jackpot.net/results"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    draw_data = []
-    results = soup.select('div.result')
-
-    for result in results[:10]:
-        try:
-            date_elem = result.select_one('.date')
-            balls = result.select('.balls .ball')
-            euros = result.select('.balls .euro')
-
-            if not date_elem or len(balls) < 5 or len(euros) < 2:
-                continue
-
-            date_text = date_elem.text.strip()
-            main_numbers = [int(b.text.strip()) for b in balls[:5]]
-            euro_numbers = [int(e.text.strip()) for e in euros[:2]]
-
-            draw_data.append({
-                'Draw_Date': date_text,
-                'Main_Numbers': sorted(main_numbers),
-                'Euro_Numbers': sorted(euro_numbers)
-            })
-        except Exception as e:
-            print("Skipping row:", e)
-            continue
-
-    return pd.DataFrame(draw_data)
 
 def analyze_frequency(df):
     all_main = list(itertools.chain.from_iterable(df['Main_Numbers']))
@@ -55,47 +17,39 @@ def generate_solo_win_pick(main_freq, euro_freq):
     rare_euro = euro_freq.sort_values(by='Frequency').head(6)['Number'].tolist()
     return sorted(rare_main[:5]), sorted(rare_euro[:2])
 
-# Load data
-st.title("🎯 Eurojackpot Mastermind")
-df_draws = fetch_latest_draws()
+# -- UI --
+st.title("📊 Eurojackpot Mastermind (CSV Mode)")
+uploaded_file = st.file_uploader("Upload your Eurojackpot CSV file", type=["csv"])
 
-# Show draw data
-st.subheader("🗓️ Latest Draws")
-if df_draws.empty or 'Main_Numbers' not in df_draws.columns:
-    st.warning("⚠️ No valid draw data found. Please try again later.")
-    st.stop()
-else:
-    st.dataframe(df_draws)
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file)
 
-# Initialize session state
-if 'main_freq' not in st.session_state:
-    st.session_state.main_freq = None
-    st.session_state.euro_freq = None
-    st.session_state.pick_main = None
-    st.session_state.pick_euro = None
+        if 'Main_Numbers' in df.columns and 'Euro_Numbers' in df.columns:
+            # Convert stringified lists to real lists (if needed)
+            if isinstance(df['Main_Numbers'].iloc[0], str):
+                df['Main_Numbers'] = df['Main_Numbers'].apply(eval)
+                df['Euro_Numbers'] = df['Euro_Numbers'].apply(eval)
 
-# Run Frequency Analysis
-if st.button("Run Frequency Analysis", key="run_analysis"):
-    main_freq, euro_freq = analyze_frequency(df_draws)
-    st.session_state.main_freq = main_freq
-    st.session_state.euro_freq = euro_freq
+            st.success("✅ Data loaded successfully!")
+            st.dataframe(df)
 
-# Show Frequencies
-if st.session_state.main_freq is not None:
-    st.subheader("🔥 Main Number Frequency")
-    st.dataframe(st.session_state.main_freq)
-    st.subheader("🔵 Euro Number Frequency")
-    st.dataframe(st.session_state.euro_freq)
+            if st.button("Run Frequency Analysis"):
+                main_freq, euro_freq = analyze_frequency(df)
+                st.session_state.main_freq = main_freq
+                st.session_state.euro_freq = euro_freq
 
-# Generate Smart Solo Pick
-if st.button("🎯 Generate Smart Solo Pick", key="solo_pick"):
-    if st.session_state.main_freq is None:
-        st.warning("Please run the frequency analysis first!")
-    else:
-        main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
-        st.session_state.pick_main = main
-        st.session_state.pick_euro = euro
+            if 'main_freq' in st.session_state:
+                st.subheader("🔥 Main Number Frequency")
+                st.dataframe(st.session_state.main_freq)
+                st.subheader("🔵 Euro Number Frequency")
+                st.dataframe(st.session_state.euro_freq)
 
-# Show Smart Pick Result
-if st.session_state.pick_main is not None:
-    st.success(f"🎯 Your Mastermind Pick: {st.session_state.pick_main} + {st.session_state.pick_euro}")
+                if st.button("🎯 Generate Smart Solo Pick"):
+                    main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
+                    st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
+
+        else:
+            st.error("❌ CSV must include 'Main_Numbers' and 'Euro_Numbers' columns.")
+    except Exception as e:
+        st.error(f"⚠️ Something went wrong: {e}")
