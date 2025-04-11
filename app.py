@@ -50,7 +50,6 @@ def merge_new_draws(master_df, new_df):
     combined_df = combined_df.drop_duplicates(subset=['Draw_Date', 'Main_Str', 'Euro_Str'])
     combined_df = combined_df.drop(columns=['Main_Str', 'Euro_Str'])
 
-    # ✅ Sort using actual date, not text
     combined_df['Parsed_Date'] = pd.to_datetime(combined_df['Draw_Date'], errors='coerce')
     combined_df = combined_df.dropna(subset=['Parsed_Date'])
     combined_df = combined_df.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
@@ -59,7 +58,7 @@ def merge_new_draws(master_df, new_df):
 
 # ---- APP UI ----
 
-st.title("🎯 Eurojackpot Mastermind (Chronological Fix)")
+st.title("🎯 Eurojackpot Mastermind (Full & Final Version)")
 master_df = load_master_data()
 
 # --------- Manual Entry Form ---------
@@ -90,6 +89,7 @@ if submitted:
     }])
     master_df = merge_new_draws(master_df, new_row)
     master_df.to_csv(MASTER_FILE, index=False)
+    master_df = load_master_data()  # ✅ Reload to show updated data
     st.success("✅ Draw added and saved!")
 
 # --------- Optional CSV Upload ---------
@@ -101,6 +101,7 @@ if uploaded_file:
         if 'Draw_Date' in new_df.columns and 'Main_Numbers' in new_df.columns and 'Euro_Numbers' in new_df.columns:
             master_df = merge_new_draws(master_df, new_df)
             master_df.to_csv(MASTER_FILE, index=False)
+            master_df = load_master_data()  # ✅ Reload to show updated data
             st.success("✅ Uploaded CSV merged and saved!")
         else:
             st.error("CSV must include Draw_Date, Main_Numbers, and Euro_Numbers")
