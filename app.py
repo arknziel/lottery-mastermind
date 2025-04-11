@@ -49,13 +49,17 @@ def merge_new_draws(master_df, new_df):
     combined_df['Euro_Str'] = combined_df['Euro_Numbers'].apply(str)
     combined_df = combined_df.drop_duplicates(subset=['Draw_Date', 'Main_Str', 'Euro_Str'])
     combined_df = combined_df.drop(columns=['Main_Str', 'Euro_Str'])
-    combined_df = combined_df.sort_values(by='Draw_Date').reset_index(drop=True)
+
+    # ✅ Sort using actual date, not text
+    combined_df['Parsed_Date'] = pd.to_datetime(combined_df['Draw_Date'], errors='coerce')
+    combined_df = combined_df.dropna(subset=['Parsed_Date'])
+    combined_df = combined_df.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
 
     return combined_df
 
 # ---- APP UI ----
 
-st.title("🎯 Eurojackpot Mastermind (Chronological Edition)")
+st.title("🎯 Eurojackpot Mastermind (Chronological Fix)")
 master_df = load_master_data()
 
 # --------- Manual Entry Form ---------
@@ -104,12 +108,8 @@ if uploaded_file:
         st.error(f"⚠️ Error reading CSV: {e}")
 
 # --------- Data View & Tools ---------
-st.subheader("📅 All Draw Data (Chronological Order)")
-
-df_sorted = master_df.copy()
-df_sorted['Parsed_Date'] = pd.to_datetime(df_sorted['Draw_Date'], errors='coerce')
-df_sorted = df_sorted.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
-st.dataframe(df_sorted)
+st.subheader("📅 All Draw Data (Chronologically Sorted)")
+st.dataframe(master_df)
 
 if st.button("📊 Run Frequency Analysis"):
     main_freq, euro_freq = analyze_frequency(master_df)
