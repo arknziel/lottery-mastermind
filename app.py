@@ -5,10 +5,16 @@ from collections import Counter
 import os
 from datetime import date
 import random
+import re
 
 st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
 
 MASTER_FILE = "eurojackpot_master_data.csv"
+
+def clean_draw_date_column(df):
+    # Remove "Fr.", "Di.", etc. using regex, keeping the actual date
+    df['Draw_Date'] = df['Draw_Date'].apply(lambda x: re.sub(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", x.strip()))
+    return df
 
 def analyze_frequency(df):
     all_main = list(itertools.chain.from_iterable(df['Main_Numbers']))
@@ -35,12 +41,14 @@ def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
 def load_master_data():
     if os.path.exists(MASTER_FILE):
         df = pd.read_csv(MASTER_FILE)
+        df = clean_draw_date_column(df)
         df['Main_Numbers'] = df['Main_Numbers'].apply(eval)
         df['Euro_Numbers'] = df['Euro_Numbers'].apply(eval)
         return df
     return pd.DataFrame(columns=['Draw_Date', 'Main_Numbers', 'Euro_Numbers'])
 
 def merge_new_draws(master_df, new_df):
+    new_df = clean_draw_date_column(new_df)
     new_df['Main_Numbers'] = new_df['Main_Numbers'].apply(eval)
     new_df['Euro_Numbers'] = new_df['Euro_Numbers'].apply(eval)
 
@@ -58,7 +66,7 @@ def merge_new_draws(master_df, new_df):
 
 # ---- APP UI ----
 
-st.title("🎯 Eurojackpot Mastermind (Full & Final Version)")
+st.title("🎯 Eurojackpot Mastermind (Date Cleanup Fix)")
 master_df = load_master_data()
 
 # --------- Manual Entry Form ---------
@@ -89,7 +97,7 @@ if submitted:
     }])
     master_df = merge_new_draws(master_df, new_row)
     master_df.to_csv(MASTER_FILE, index=False)
-    master_df = load_master_data()  # ✅ Reload to show updated data
+    master_df = load_master_data()
     st.success("✅ Draw added and saved!")
 
 # --------- Optional CSV Upload ---------
@@ -101,7 +109,7 @@ if uploaded_file:
         if 'Draw_Date' in new_df.columns and 'Main_Numbers' in new_df.columns and 'Euro_Numbers' in new_df.columns:
             master_df = merge_new_draws(master_df, new_df)
             master_df.to_csv(MASTER_FILE, index=False)
-            master_df = load_master_data()  # ✅ Reload to show updated data
+            master_df = load_master_data()
             st.success("✅ Uploaded CSV merged and saved!")
         else:
             st.error("CSV must include Draw_Date, Main_Numbers, and Euro_Numbers")
