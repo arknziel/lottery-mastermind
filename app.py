@@ -58,34 +58,44 @@ def generate_solo_win_pick(main_freq, euro_freq):
 # Load data
 st.title("🎯 Eurojackpot Mastermind")
 df_draws = fetch_latest_draws()
-st.subheader("🗓️ Latest Draws")
-st.dataframe(df_draws)
 
-# Buttons + session state init
+# Show draw data
+st.subheader("🗓️ Latest Draws")
+if df_draws.empty or 'Main_Numbers' not in df_draws.columns:
+    st.warning("⚠️ No valid draw data found. Please try again later.")
+    st.stop()
+else:
+    st.dataframe(df_draws)
+
+# Initialize session state
 if 'main_freq' not in st.session_state:
     st.session_state.main_freq = None
     st.session_state.euro_freq = None
     st.session_state.pick_main = None
     st.session_state.pick_euro = None
 
+# Run Frequency Analysis
 if st.button("Run Frequency Analysis", key="run_analysis"):
     main_freq, euro_freq = analyze_frequency(df_draws)
     st.session_state.main_freq = main_freq
     st.session_state.euro_freq = euro_freq
 
+# Show Frequencies
 if st.session_state.main_freq is not None:
     st.subheader("🔥 Main Number Frequency")
     st.dataframe(st.session_state.main_freq)
     st.subheader("🔵 Euro Number Frequency")
     st.dataframe(st.session_state.euro_freq)
 
+# Generate Smart Solo Pick
 if st.button("🎯 Generate Smart Solo Pick", key="solo_pick"):
     if st.session_state.main_freq is None:
-        st.warning("Run frequency analysis first!")
+        st.warning("Please run the frequency analysis first!")
     else:
         main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
         st.session_state.pick_main = main
         st.session_state.pick_euro = euro
 
+# Show Smart Pick Result
 if st.session_state.pick_main is not None:
     st.success(f"🎯 Your Mastermind Pick: {st.session_state.pick_main} + {st.session_state.pick_euro}")
