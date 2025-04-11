@@ -5,7 +5,6 @@ import streamlit as st
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 from collections import Counter
 import itertools
 
@@ -20,26 +19,26 @@ def fetch_latest_draws():
     draw_data = []
     results = soup.select('div.result')
 
-    for result in results[:10]:  # get last 10 draws
+    for result in results[:10]:
         try:
             date_elem = result.select_one('.date')
-            numbers_elem = result.select('.ball')
-            euro_elem = result.select('.euro')
+            balls = result.select('.balls .ball')
+            euros = result.select('.balls .euro')
 
-            if not date_elem or len(numbers_elem) < 5 or len(euro_elem) < 2:
+            if not date_elem or len(balls) < 5 or len(euros) < 2:
                 continue
 
             date_text = date_elem.text.strip()
-            numbers = [int(n.text.strip()) for n in numbers_elem[:5]]
-            euro_numbers = [int(n.text.strip()) for n in euro_elem[:2]]
+            main_numbers = [int(b.text.strip()) for b in balls[:5]]
+            euro_numbers = [int(e.text.strip()) for e in euros[:2]]
 
             draw_data.append({
                 'Draw_Date': date_text,
-                'Main_Numbers': sorted(numbers),
+                'Main_Numbers': sorted(main_numbers),
                 'Euro_Numbers': sorted(euro_numbers)
             })
         except Exception as e:
-            print("Skipping a row due to error:", e)
+            print("Skipping row:", e)
             continue
 
     return pd.DataFrame(draw_data)
@@ -54,24 +53,22 @@ def analyze_frequency(df):
 def generate_solo_win_pick(main_freq, euro_freq):
     rare_main = main_freq.sort_values(by='Frequency').head(20)['Number'].tolist()
     rare_euro = euro_freq.sort_values(by='Frequency').head(6)['Number'].tolist()
-    selected_main = sorted(rare_main[:5])
-    selected_euro = sorted(rare_euro[:2])
-    return selected_main, selected_euro
+    return sorted(rare_main[:5]), sorted(rare_euro[:2])
 
-# Streamlit UI
+# Load data
 st.title("🎯 Eurojackpot Mastermind")
 df_draws = fetch_latest_draws()
 st.subheader("🗓️ Latest Draws")
 st.dataframe(df_draws)
 
-# Session setup
+# Buttons + session state init
 if 'main_freq' not in st.session_state:
     st.session_state.main_freq = None
     st.session_state.euro_freq = None
     st.session_state.pick_main = None
     st.session_state.pick_euro = None
 
-if st.button("Run Frequency Analysis", key="run_freq"):
+if st.button("Run Frequency Analysis", key="run_analysis"):
     main_freq, euro_freq = analyze_frequency(df_draws)
     st.session_state.main_freq = main_freq
     st.session_state.euro_freq = euro_freq
@@ -82,13 +79,13 @@ if st.session_state.main_freq is not None:
     st.subheader("🔵 Euro Number Frequency")
     st.dataframe(st.session_state.euro_freq)
 
-if st.button("🎯 Generate Smart Solo Pick", key="smart_pick"):
+if st.button("🎯 Generate Smart Solo Pick", key="solo_pick"):
     if st.session_state.main_freq is None:
-        st.warning("Please run the frequency analysis first!")
+        st.warning("Run frequency analysis first!")
     else:
-        pick_main, pick_euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
-        st.session_state.pick_main = pick_main
-        st.session_state.pick_euro = pick_euro
+        main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
+        st.session_state.pick_main = main
+        st.session_state.pick_euro = euro
 
 if st.session_state.pick_main is not None:
     st.success(f"🎯 Your Mastermind Pick: {st.session_state.pick_main} + {st.session_state.pick_euro}")
