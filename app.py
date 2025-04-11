@@ -55,7 +55,7 @@ def merge_new_draws(master_df, new_df):
 
 # ---- APP UI ----
 
-st.title("🎯 Eurojackpot Mastermind (All-in-One Edition)")
+st.title("🎯 Eurojackpot Mastermind (Chronological Edition)")
 master_df = load_master_data()
 
 # --------- Manual Entry Form ---------
@@ -104,8 +104,12 @@ if uploaded_file:
         st.error(f"⚠️ Error reading CSV: {e}")
 
 # --------- Data View & Tools ---------
-st.subheader("📅 All Draw Data")
-st.dataframe(master_df)
+st.subheader("📅 All Draw Data (Chronological Order)")
+
+df_sorted = master_df.copy()
+df_sorted['Parsed_Date'] = pd.to_datetime(df_sorted['Draw_Date'], errors='coerce')
+df_sorted = df_sorted.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
+st.dataframe(df_sorted)
 
 if st.button("📊 Run Frequency Analysis"):
     main_freq, euro_freq = analyze_frequency(master_df)
