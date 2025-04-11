@@ -4,8 +4,9 @@ import itertools
 from collections import Counter
 import os
 from datetime import date
+import random
 
-st.set_page_config(page_title="Eurojackpot Mastermind (Manual + Merge Mode)", layout="centered")
+st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
 
 MASTER_FILE = "eurojackpot_master_data.csv"
 
@@ -21,6 +22,16 @@ def generate_solo_win_pick(main_freq, euro_freq):
     rare_euro = euro_freq.sort_values(by='Frequency').head(6)['Number'].tolist()
     return sorted(rare_main[:5]), sorted(rare_euro[:2])
 
+def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
+    rare_main = main_freq.sort_values(by='Frequency').head(25)['Number'].tolist()
+    rare_euro = euro_freq.sort_values(by='Frequency').head(8)['Number'].tolist()
+    picks = []
+    for _ in range(num_picks):
+        pick_main = sorted(random.sample(rare_main, 5))
+        pick_euro = sorted(random.sample(rare_euro, 2))
+        picks.append((pick_main, pick_euro))
+    return picks
+
 def load_master_data():
     if os.path.exists(MASTER_FILE):
         df = pd.read_csv(MASTER_FILE)
@@ -34,18 +45,17 @@ def merge_new_draws(master_df, new_df):
     new_df['Euro_Numbers'] = new_df['Euro_Numbers'].apply(eval)
 
     combined_df = pd.concat([master_df, new_df], ignore_index=True)
-
     combined_df['Main_Str'] = combined_df['Main_Numbers'].apply(str)
     combined_df['Euro_Str'] = combined_df['Euro_Numbers'].apply(str)
     combined_df = combined_df.drop_duplicates(subset=['Draw_Date', 'Main_Str', 'Euro_Str'])
-
     combined_df = combined_df.drop(columns=['Main_Str', 'Euro_Str'])
     combined_df = combined_df.sort_values(by='Draw_Date').reset_index(drop=True)
 
     return combined_df
 
-# Load existing data
-st.title("🎯 Eurojackpot Mastermind (Manual + Merge)")
+# ---- APP UI ----
+
+st.title("🎯 Eurojackpot Mastermind (All-in-One Edition)")
 master_df = load_master_data()
 
 # --------- Manual Entry Form ---------
@@ -93,7 +103,7 @@ if uploaded_file:
     except Exception as e:
         st.error(f"⚠️ Error reading CSV: {e}")
 
-# --------- Data & Tools ---------
+# --------- Data View & Tools ---------
 st.subheader("📅 All Draw Data")
 st.dataframe(master_df)
 
@@ -108,6 +118,14 @@ if 'main_freq' in st.session_state:
     st.subheader("🔵 Euro Number Frequency")
     st.dataframe(st.session_state['euro_freq'])
 
-    if st.button("🎯 Generate Smart Solo Pick"):
+    st.subheader("🎯 Generate Smart Solo Pick")
+    if st.button("🎯 Generate One Pick"):
         main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
-        st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
+        st.success(f"🎯 Your Pick: {main} + {euro}")
+
+    st.subheader("🎯 Generate Multiple Picks")
+    num_picks = st.slider("Number of Picks", min_value=1, max_value=20, value=5)
+    if st.button("🔁 Generate Multiple Picks"):
+        picks = generate_multiple_picks(st.session_state['main_freq'], st.session_state['euro_freq'], num_picks)
+        for i, (main, euro) in enumerate(picks, 1):
+            st.success(f"Pick {i}: {main} + {euro}")
