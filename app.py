@@ -12,7 +12,6 @@ st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
 MASTER_FILE = "eurojackpot_master_data.csv"
 
 def clean_draw_date_column(df):
-    # Remove "Fr.", "Di.", etc. using regex, keeping the actual date
     df['Draw_Date'] = df['Draw_Date'].apply(lambda x: re.sub(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", x.strip()))
     return df
 
@@ -23,6 +22,16 @@ def analyze_frequency(df):
     euro_freq = pd.DataFrame(Counter(all_euro).items(), columns=['Number', 'Frequency']).sort_values(by='Frequency', ascending=False)
     return main_freq, euro_freq
 
+def is_popular_pick(main_numbers):
+    if all(n <= 31 for n in main_numbers):
+        return True
+    if all(main_numbers[i] + 1 == main_numbers[i+1] for i in range(len(main_numbers)-1)):
+        return True
+    endings = [n % 10 for n in main_numbers]
+    if len(set(endings)) == 1:
+        return True
+    return False
+
 def generate_solo_win_pick(main_freq, euro_freq):
     rare_main = main_freq.sort_values(by='Frequency').head(20)['Number'].tolist()
     rare_euro = euro_freq.sort_values(by='Frequency').head(6)['Number'].tolist()
@@ -32,8 +41,10 @@ def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
     rare_main = main_freq.sort_values(by='Frequency').head(25)['Number'].tolist()
     rare_euro = euro_freq.sort_values(by='Frequency').head(8)['Number'].tolist()
     picks = []
-    for _ in range(num_picks):
+    while len(picks) < num_picks:
         pick_main = sorted(random.sample(rare_main, 5))
+        if is_popular_pick(pick_main):
+            continue
         pick_euro = sorted(random.sample(rare_euro, 2))
         picks.append((pick_main, pick_euro))
     return picks
@@ -51,27 +62,20 @@ def merge_new_draws(master_df, new_df):
     new_df = clean_draw_date_column(new_df)
     new_df['Main_Numbers'] = new_df['Main_Numbers'].apply(eval)
     new_df['Euro_Numbers'] = new_df['Euro_Numbers'].apply(eval)
-
     combined_df = pd.concat([master_df, new_df], ignore_index=True)
     combined_df['Main_Str'] = combined_df['Main_Numbers'].apply(str)
     combined_df['Euro_Str'] = combined_df['Euro_Numbers'].apply(str)
     combined_df = combined_df.drop_duplicates(subset=['Draw_Date', 'Main_Str', 'Euro_Str'])
     combined_df = combined_df.drop(columns=['Main_Str', 'Euro_Str'])
-
     combined_df['Parsed_Date'] = pd.to_datetime(combined_df['Draw_Date'], errors='coerce')
     combined_df = combined_df.dropna(subset=['Parsed_Date'])
     combined_df = combined_df.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
-
     return combined_df
 
-# ---- APP UI ----
-
-st.title("🎯 Eurojackpot Mastermind (Date Cleanup Fix)")
+st.title("🎯 Eurojackpot Mastermind (Popular Filter Ready)")
 master_df = load_master_data()
 
-# --------- Manual Entry Form ---------
 st.subheader("✍️ Add New Draw Manually")
-
 with st.form("manual_entry_form"):
     draw_date = st.date_input("Draw Date", value=date.today())
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -100,7 +104,6 @@ if submitted:
     master_df = load_master_data()
     st.success("✅ Draw added and saved!")
 
-# --------- Optional CSV Upload ---------
 st.subheader("📂 Or Upload New Draws (CSV)")
 uploaded_file = st.file_uploader("Upload your new draw data", type=["csv"])
 if uploaded_file:
@@ -116,7 +119,6 @@ if uploaded_file:
     except Exception as e:
         st.error(f"⚠️ Error reading CSV: {e}")
 
-# --------- Data View & Tools ---------
 st.subheader("📅 All Draw Data (Chronologically Sorted)")
 st.dataframe(master_df)
 
