@@ -54,17 +54,17 @@ if uploaded_file:
 
             if st.button("Run Frequency Analysis"):
                 main_freq, euro_freq = analyze_frequency(master_df)
-                st.session_state.main_freq = main_freq
-                st.session_state.euro_freq = euro_freq
+                st.session_state['main_freq'] = main_freq.copy()
+                st.session_state['euro_freq'] = euro_freq.copy()
 
-            if 'main_freq' in st.session_state:
+            if 'main_freq' in st.session_state and st.session_state.main_freq is not None:
                 st.subheader("🔥 Main Number Frequency")
-                st.dataframe(st.session_state.main_freq)
+                st.dataframe(st.session_state['main_freq'])
                 st.subheader("🔵 Euro Number Frequency")
-                st.dataframe(st.session_state.euro_freq)
+                st.dataframe(st.session_state['euro_freq'])
 
                 if st.button("🎯 Generate Smart Solo Pick"):
-                    main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
+                    main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
                     st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
         else:
             st.error("❌ CSV must include 'Draw_Date', 'Main_Numbers', and 'Euro_Numbers' columns.")
@@ -73,17 +73,18 @@ if uploaded_file:
 else:
     st.info("⬆️ Upload your new draw data to update the system.")
     st.dataframe(master_df)
+
     if st.button("Run Frequency Analysis"):
         main_freq, euro_freq = analyze_frequency(master_df)
-        st.session_state.main_freq = main_freq
-        st.session_state.euro_freq = euro_freq
+        st.session_state['main_freq'] = main_freq.copy()
+        st.session_state['euro_freq'] = euro_freq.copy()
 
-    if 'main_freq' in st.session_state:
+    if 'main_freq' in st.session_state and st.session_state.main_freq is not None:
         st.subheader("🔥 Main Number Frequency")
-        st.dataframe(st.session_state.main_freq)
+        st.dataframe(st.session_state['main_freq'])
         st.subheader("🔵 Euro Number Frequency")
-        st.dataframe(st.session_state.euro_freq)
+        st.dataframe(st.session_state['euro_freq'])
 
         if st.button("🎯 Generate Smart Solo Pick"):
-            main, euro = generate_solo_win_pick(st.session_state.main_freq, st.session_state.euro_freq)
+            main, euro = generate_solo_win_pick(st.session_state['main_freq'], st.session_state['euro_freq'])
             st.success(f"🎯 Your Mastermind Pick: {main} + {euro}")
