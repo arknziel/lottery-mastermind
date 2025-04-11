@@ -11,6 +11,9 @@ st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
 
 MASTER_FILE = "eurojackpot_master_data.csv"
 
+# Strategy toggle
+USE_POPULAR_FILTER = st.sidebar.checkbox("🛡️ Avoid Popular Picks", value=True)
+
 def clean_draw_date_column(df):
     df['Draw_Date'] = df['Draw_Date'].apply(lambda x: re.sub(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", x.strip()))
     return df
@@ -41,12 +44,16 @@ def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
     rare_main = main_freq.sort_values(by='Frequency').head(25)['Number'].tolist()
     rare_euro = euro_freq.sort_values(by='Frequency').head(8)['Number'].tolist()
     picks = []
-    while len(picks) < num_picks:
+    attempts = 0
+    while len(picks) < num_picks and attempts < 100:
         pick_main = sorted(random.sample(rare_main, 5))
-        if is_popular_pick(pick_main):
+        if USE_POPULAR_FILTER and is_popular_pick(pick_main):
+            st.info(f"⚠️ Skipped popular pick: {pick_main}")
+            attempts += 1
             continue
         pick_euro = sorted(random.sample(rare_euro, 2))
         picks.append((pick_main, pick_euro))
+        attempts += 1
     return picks
 
 def load_master_data():
@@ -72,7 +79,7 @@ def merge_new_draws(master_df, new_df):
     combined_df = combined_df.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
     return combined_df
 
-st.title("🎯 Eurojackpot Mastermind (Popular Filter Ready)")
+st.title("🎯 Eurojackpot Mastermind (Strategy Toggle Ready)")
 master_df = load_master_data()
 
 st.subheader("✍️ Add New Draw Manually")
