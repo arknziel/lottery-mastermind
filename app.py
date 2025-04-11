@@ -92,4 +92,5 @@ if st.button("🎯 Generate Smart Solo Pick", key="smart_pick"):
         st.session_state.pick_euro = pick_euro
 
 # Show Smart Pick Result
-if st.session_state.pick_main is not
+if st.session_state.pick_main is not None:
+    st.success(f"🎯 Your Mastermind Pick: {st.session_state.pick_main} + {st.session_state.pick_euro}")
