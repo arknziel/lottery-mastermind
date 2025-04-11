@@ -11,10 +11,6 @@ st.set_page_config(page_title="Eurojackpot Mastermind", layout="centered")
 
 MASTER_FILE = "eurojackpot_master_data.csv"
 
-# Strategy toggles
-USE_POPULAR_FILTER = st.sidebar.checkbox("🛡️ Avoid Popular Picks", value=True)
-STRATEGY_MODE = st.sidebar.selectbox("🎯 Pick Strategy Mode", ["Rare Focus", "Small Win Strategy", "Minimum Prize Guaranteed"])
-
 def clean_draw_date_column(df):
     df['Draw_Date'] = df['Draw_Date'].apply(lambda x: re.sub(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", x.strip()))
     return df
@@ -56,14 +52,14 @@ def generate_minimum_prize_picks(main_freq, euro_freq):
     euro_numbers = sorted(random.sample(top_euro, 1) + random.sample(mid_euro, 1))
     return main_numbers, euro_numbers
 
-def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
+def generate_multiple_picks(main_freq, euro_freq, num_picks=5, strategy_mode="Rare Focus", avoid_popular=True):
     picks = []
     attempts = 0
 
     while len(picks) < num_picks and attempts < 100:
-        if STRATEGY_MODE == "Small Win Strategy":
+        if strategy_mode == "Small Win Strategy":
             pick_main, pick_euro = generate_small_win_strategy_pick(main_freq, euro_freq)
-        elif STRATEGY_MODE == "Minimum Prize Guaranteed":
+        elif strategy_mode == "Minimum Prize Guaranteed":
             pick_main, pick_euro = generate_minimum_prize_picks(main_freq, euro_freq)
         else:
             rare_main = main_freq.sort_values(by='Frequency').head(25)['Number'].tolist()
@@ -71,7 +67,7 @@ def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
             pick_main = sorted(random.sample(rare_main, 5))
             pick_euro = sorted(random.sample(rare_euro, 2))
 
-        if USE_POPULAR_FILTER and is_popular_pick(pick_main):
+        if avoid_popular and is_popular_pick(pick_main):
             attempts += 1
             continue
 
@@ -79,11 +75,6 @@ def generate_multiple_picks(main_freq, euro_freq, num_picks=5):
         attempts += 1
 
     return picks
-
-def generate_solo_win_pick(main_freq, euro_freq):
-    rare_main = main_freq.sort_values(by='Frequency').head(20)['Number'].tolist()
-    rare_euro = euro_freq.sort_values(by='Frequency').head(6)['Number'].tolist()
-    return sorted(rare_main[:5]), sorted(rare_euro[:2])
 
 def load_master_data():
     if os.path.exists(MASTER_FILE):
@@ -108,40 +99,11 @@ def merge_new_draws(master_df, new_df):
     combined_df = combined_df.sort_values(by='Parsed_Date').drop(columns='Parsed_Date').reset_index(drop=True)
     return combined_df
 
-st.title("🎯 Eurojackpot Mastermind (With Minimum Prize Strategy)")
+st.title("🎯 Eurojackpot Mastermind")
 master_df = load_master_data()
 
-st.subheader("✍️ Add New Draw Manually")
-with st.form("manual_entry_form"):
-    draw_date = st.date_input("Draw Date", value=date.today())
-    col1, col2, col3, col4, col5 = st.columns(5)
-    main_numbers = [
-        col1.number_input("Main 1", 1, 50, key="m1"),
-        col2.number_input("Main 2", 1, 50, key="m2"),
-        col3.number_input("Main 3", 1, 50, key="m3"),
-        col4.number_input("Main 4", 1, 50, key="m4"),
-        col5.number_input("Main 5", 1, 50, key="m5")
-    ]
-    col6, col7 = st.columns(2)
-    euro_numbers = [
-        col6.number_input("Euro 1", 1, 12, key="e1"),
-        col7.number_input("Euro 2", 1, 12, key="e2")
-    ]
-    submitted = st.form_submit_button("➕ Add Draw")
-
-if submitted:
-    new_row = pd.DataFrame([{
-        "Draw_Date": str(draw_date),
-        "Main_Numbers": str(sorted(main_numbers)),
-        "Euro_Numbers": str(sorted(euro_numbers))
-    }])
-    master_df = merge_new_draws(master_df, new_row)
-    master_df.to_csv(MASTER_FILE, index=False)
-    master_df = load_master_data()
-    st.success("✅ Draw added and saved!")
-
-st.subheader("📅 All Draw Data (Chronologically Sorted)")
-st.dataframe(master_df)
+strategy_mode = st.radio("🎯 Select Pick Strategy:", ["Rare Focus", "Small Win Strategy", "Minimum Prize Guaranteed"])
+avoid_popular = st.checkbox("🛡️ Avoid Popular Picks", value=True)
 
 if st.button("📊 Run Frequency Analysis"):
     main_freq, euro_freq = analyze_frequency(master_df)
@@ -152,6 +114,6 @@ if 'main_freq' in st.session_state:
     st.subheader("🎯 Generate Multiple Picks")
     num_picks = st.slider("Number of Picks", min_value=1, max_value=20, value=5)
     if st.button("🔁 Generate Multiple Picks"):
-        picks = generate_multiple_picks(st.session_state['main_freq'], st.session_state['euro_freq'], num_picks)
+        picks = generate_multiple_picks(st.session_state['main_freq'], st.session_state['euro_freq'], num_picks, strategy_mode, avoid_popular)
         for i, (main, euro) in enumerate(picks, 1):
             st.success(f"Pick {i}: {main} + {euro}")
