@@ -38,3 +38,71 @@ def load_data(file_path):
         df['Numbers'] = df['Numbers'].apply(eval)
         return df
     return None
+# --- Eurojackpot Section ---
+if lottery == "Eurojackpot":
+    st.title("🎯 Eurojackpot Mastermind")
+
+    df = load_data(EURO_FILE)
+
+    if df is None:
+        st.warning("⚠️ No Eurojackpot data found. Please upload a CSV.")
+    else:
+        if st.button("📊 Run Frequency Analysis"):
+            freq = analyze_frequency(df)
+            st.session_state["ej_freq"] = freq
+
+        if "ej_freq" in st.session_state:
+            hot, warm, cold = get_heat_groups(st.session_state["ej_freq"])
+
+            st.subheader("🔥 Heat Analyzer")
+            st.write(f"🔥 Hot: {hot}")
+            st.write(f"🟡 Warm: {warm}")
+            st.write(f"❄️ Cold: {cold}")
+
+            strategy = st.radio("🎛️ Heat Strategy", ["🔥 Hot Only", "🟡 Warm Only", "❄️ Cold Only", "⚖️ Balanced"])
+            if st.button("♻️ Generate Eurojackpot Pick"):
+                if strategy == "🔥 Hot Only":
+                    pick = sorted(random.sample(hot, 5))
+                    euro = sorted(random.sample(hot, 2))
+                elif strategy == "🟡 Warm Only":
+                    pick = sorted(random.sample(warm, 5))
+                    euro = sorted(random.sample(warm, 2))
+                elif strategy == "❄️ Cold Only":
+                    pick = sorted(random.sample(cold, 5))
+                    euro = sorted(random.sample(cold, 2))
+                else:
+                    pick = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 1))
+                    euro = sorted(random.sample(warm, 1) + random.sample(cold, 1))
+                st.success(f"🎯 Main: {pick} + Euro: {euro}")
+# --- SuperEnalotto Section ---
+elif lottery == "SuperEnalotto":
+    st.title("🎯 SuperEnalotto Mastermind")
+
+    df = load_data(SUPER_FILE)
+
+    if df is None:
+        st.warning("⚠️ No SuperEnalotto data found. Please upload a CSV.")
+    else:
+        if st.button("📊 Run Frequency Analysis"):
+            freq = analyze_frequency(df)
+            st.session_state["se_freq"] = freq
+
+        if "se_freq" in st.session_state:
+            hot, warm, cold = get_heat_groups(st.session_state["se_freq"])
+
+            st.subheader("🔥 Heat Analyzer")
+            st.write(f"🔥 Hot: {hot}")
+            st.write(f"🟡 Warm: {warm}")
+            st.write(f"❄️ Cold: {cold}")
+
+            strategy = st.radio("🎛️ Heat Strategy", ["🔥 Hot Only", "🟡 Warm Only", "❄️ Cold Only", "⚖️ Balanced"])
+            if st.button("♻️ Generate SuperEnalotto Pick"):
+                if strategy == "🔥 Hot Only":
+                    pick = sorted(random.sample(hot, 6))
+                elif strategy == "🟡 Warm Only":
+                    pick = sorted(random.sample(warm, 6))
+                elif strategy == "❄️ Cold Only":
+                    pick = sorted(random.sample(cold, 6))
+                else:
+                    pick = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 2))
+                st.success(f"🎯 SuperEnalotto Pick: {pick}")
