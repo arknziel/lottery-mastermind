@@ -35,13 +35,28 @@ def get_heat_groups(freq_df):
 def load_data(file_path):
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
-        df['Numbers'] = df['Numbers'].apply(eval)
+        # Handle old format
+        if "Numbers" not in df.columns and "Main_Numbers" in df.columns and "Euro_Numbers" in df.columns:
+            df["Main_Numbers"] = df["Main_Numbers"].apply(eval)
+            df["Euro_Numbers"] = df["Euro_Numbers"].apply(eval)
+            df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
+        elif "Numbers" in df.columns:
+            df["Numbers"] = df["Numbers"].apply(eval)
+        else:
+            st.error("⚠️ CSV is missing expected number columns.")
+            return None
         return df
     return None
 
-# --- Eurojackpot Section ---
 if lottery == "Eurojackpot":
     st.title("🎯 Eurojackpot Mastermind")
+
+    st.subheader("📤 Upload Eurojackpot CSV")
+    ej_file = st.file_uploader("Choose a Eurojackpot CSV file", type=["csv"], key="ej_upload")
+    if ej_file:
+        uploaded_df = pd.read_csv(ej_file)
+        uploaded_df.to_csv(EURO_FILE, index=False)
+        st.success("✅ Eurojackpot data uploaded and saved!")
 
     df = load_data(EURO_FILE)
 
@@ -76,7 +91,6 @@ if lottery == "Eurojackpot":
                     euro = sorted(random.sample(warm, 1) + random.sample(cold, 1))
                 st.success(f"🎯 Main: {pick} + Euro: {euro}")
 
-    # --- Manual Entry for Eurojackpot ---
     st.subheader("➕ Add Eurojackpot Draw")
     with st.form("ej_manual_entry"):
         draw_date = st.date_input("Draw Date (Eurojackpot)")
@@ -97,9 +111,15 @@ if lottery == "Eurojackpot":
             updated.to_csv(EURO_FILE, index=False)
             st.success("✅ Eurojackpot draw added!")
 
-# --- SuperEnalotto Section ---
 elif lottery == "SuperEnalotto":
     st.title("🎯 SuperEnalotto Mastermind")
+
+    st.subheader("📤 Upload SuperEnalotto CSV")
+    se_file = st.file_uploader("Choose a SuperEnalotto CSV file", type=["csv"], key="se_upload")
+    if se_file:
+        uploaded_df = pd.read_csv(se_file)
+        uploaded_df.to_csv(SUPER_FILE, index=False)
+        st.success("✅ SuperEnalotto data uploaded and saved!")
 
     df = load_data(SUPER_FILE)
 
@@ -130,7 +150,6 @@ elif lottery == "SuperEnalotto":
                     pick = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 2))
                 st.success(f"🎯 SuperEnalotto Pick: {pick}")
 
-    # --- Manual Entry for SuperEnalotto ---
     st.subheader("➕ Add SuperEnalotto Draw")
     with st.form("se_manual_entry"):
         draw_date = st.date_input("Draw Date (SuperEnalotto)")
