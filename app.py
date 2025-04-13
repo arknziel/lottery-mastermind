@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import random
 import itertools
-from collections import Counter
+from collections import Counter, defaultdict
 import os
+import ast
 
 st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
 
@@ -71,26 +72,29 @@ if df is not None:
             "🛡️ Minimum Prize Guaranteed"
         ])
 
-        if st.button("♻️ Generate Pick"):
-            if strategy == "🔥 Hot Only":
-                main = sorted(random.sample(hot, 5))
-                euro = sorted(random.sample(hot, 2))
-            elif strategy == "🟡 Warm Only":
-                main = sorted(random.sample(warm, 5))
-                euro = sorted(random.sample(warm, 2))
-            elif strategy == "❄️ Cold Only":
-                main = sorted(random.sample(cold, 5))
-                euro = sorted(random.sample(cold, 2))
-            elif strategy == "⚖️ Balanced":
-                main = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 1))
-                euro = sorted(random.sample(warm, 1) + random.sample(cold, 1))
-            elif strategy == "🎯 Small Win Strategy":
-                main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
-                euro = sorted(random.sample(hot + warm, 1) + random.sample(hot + warm + cold, 1))
-            elif strategy == "🛡️ Minimum Prize Guaranteed":
-                main = sorted(random.sample(hot + warm, 5))
-                euro = sorted(random.sample(hot + warm, 2))
-            st.success(f"🎯 Your Pick: {main} + {euro}")
+        num_picks = st.slider("🔁 How many picks do you want?", 1, 10, 1)
+
+        if st.button("♻️ Generate Picks"):
+            for i in range(num_picks):
+                if strategy == "🔥 Hot Only":
+                    main = sorted(random.sample(hot, 5))
+                    euro = sorted(random.sample(hot, 2))
+                elif strategy == "🟡 Warm Only":
+                    main = sorted(random.sample(warm, 5))
+                    euro = sorted(random.sample(warm, 2))
+                elif strategy == "❄️ Cold Only":
+                    main = sorted(random.sample(cold, 5))
+                    euro = sorted(random.sample(cold, 2))
+                elif strategy == "⚖️ Balanced":
+                    main = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 1))
+                    euro = sorted(random.sample(warm, 1) + random.sample(cold, 1))
+                elif strategy == "🎯 Small Win Strategy":
+                    main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
+                    euro = sorted(random.sample(hot + warm, 1) + random.sample(hot + warm + cold, 1))
+                elif strategy == "🛡️ Minimum Prize Guaranteed":
+                    main = sorted(random.sample(hot + warm, 5))
+                    euro = sorted(random.sample(hot + warm, 2))
+                st.success(f"🎯 Pick Set {i+1}: {main} + {euro}")
 
         # Arknziel Solo Pick
         with st.expander("🔐 arknziel solo pick"):
@@ -104,7 +108,7 @@ if df is not None:
 else:
     st.info("ℹ️ Upload or add data below to get started.")
 
-# Manual Draw Entry
+# --- Manual Entry Section ---
 st.subheader("➕ Add Eurojackpot Draw")
 with st.form("manual_entry"):
     draw_date = st.date_input("Draw Date")
@@ -121,3 +125,61 @@ with st.form("manual_entry"):
             updated = new_row
         updated.to_csv(EURO_FILE, index=False)
         st.success("✅ Draw added successfully!")
+
+# --- Strategy Hit Tracker ---
+st.markdown("---")
+st.title("📊 Strategy Hit Tracker")
+
+df = load_data()
+
+if df is not None and "Numbers" in df.columns:
+    st.subheader("🎯 Compare Strategies to Real Draws")
+
+    num_draws = st.slider("How many past draws to test against?", 10, 100, 20, step=10)
+    num_sims = st.slider("How many picks to simulate per strategy?", 5, 50, 10, step=5)
+
+    recent_draws = df.tail(num_draws)
+    past_draws = [(ast.literal_eval(row['Numbers'])[:5], ast.literal_eval(row['Numbers'])[5:]) for _, row in recent_draws.iterrows()]
+
+    strategies = {
+        "🔥 Hot Only": lambda hot, warm, cold: (random.sample(hot, 5), random.sample(hot, 2)),
+        "🟡 Warm Only": lambda hot, warm, cold: (random.sample(warm, 5), random.sample(warm, 2)),
+        "❄️ Cold Only": lambda hot, warm, cold: (random.sample(cold, 5), random.sample(cold, 2)),
+        "⚖️ Balanced": lambda hot, warm, cold: (
+            random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 1),
+            random.sample(warm, 1) + random.sample(cold, 1)
+        ),
+        "🎯 Small Win Strategy": lambda hot, warm, cold: (
+            random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2),
+            random.sample(hot + warm, 1) + random.sample(hot + warm + cold, 1)
+        ),
+        "🛡️ Minimum Prize Guaranteed": lambda hot, warm, cold: (
+            random.sample(hot + warm, 5),
+            random.sample(hot + warm, 2)
+        ),
+    }
+
+    if "freq" not in st.session_state:
+        st.warning("Please run the Frequency Analysis first.")
+    else:
+        hot, warm, cold = get_heat_groups(st.session_state["freq"])
+        hit_results = defaultdict(Counter)
+
+        for strat_name, pick_func in strategies.items():
+            for _ in range(num_sims):
+                pick_main, pick_euro = pick_func(hot, warm, cold)
+                for real_main, real_euro in past_draws:
+                    main_hits = len(set(pick_main) & set(real_main))
+                    euro_hits = len(set(pick_euro) & set(real_euro))
+                    key = f"{main_hits}+{euro_hits}"
+                    hit_results[strat_name][key] += 1
+
+        st.subheader("📋 Strategy Hit Summary")
+        all_keys = sorted({k for counts in hit_results.values() for k in counts})
+        df_summary = pd.DataFrame(index=strategies.keys(), columns=all_keys).fillna(0)
+
+        for strat, counts in hit_results.items():
+            for match_type, count in counts.items():
+                df_summary.loc[strat, match_type] = count
+
+        st.dataframe(df_summary.astype(int))
