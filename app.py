@@ -200,21 +200,21 @@ df = load_data()
 if df is not None:
     df_display = df.copy()
 
-    # Ensure the Draw_Date column is present and parsed correctly
-    if 'Draw_Date' in df_display.columns:
-        df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
-        df_display = df_display.dropna(subset=['Draw_Date'])  # drop invalid date rows
-        df_display = df_display.sort_values(by='Draw_Date', ascending=False)  # newest first
-    else:
-        df_display['Draw_Date'] = pd.NaT
+    # Remove weekday prefixes like "Fr. ", "Tu. ", etc.
+    df_display['Draw_Date'] = df_display['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
 
-    # Reset index and display
+    # Convert to datetime and sort
+    df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], format="%d.%m.%Y", errors='coerce')
+    df_display = df_display.dropna(subset=['Draw_Date'])
+    df_display = df_display.sort_values(by='Draw_Date', ascending=False)
+
     st.dataframe(
-        df_display[['Draw_Date', 'Numbers']].reset_index(drop=True),
+        df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True),
         use_container_width=True
     )
 else:
     st.info("ℹ️ No draw data available. Please upload or enter draws to see history.")
+
 
 
 
