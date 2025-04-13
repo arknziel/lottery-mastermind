@@ -96,24 +96,29 @@ if df is not None:
                     euro = sorted(random.sample(hot + warm, 2))
                 st.success(f"🎯 Pick Set {i+1}: {main} + {euro}")
 
-        # Arknziel Solo Pick
-       with st.expander("🔐 arknziel solo pick"):
-    pw = st.text_input("Enter password", type="password")
-    if pw == "arknziel":
-        # Create anti-popular smart pick
-        cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
-        rare_pool = [n for n in cold_numbers if n > 31]
+          # --- Arknziel Solo Pick ---
+        with st.expander("🔐 arknziel solo pick"):
+            pw = st.text_input("Enter password", type="password")
+            if pw == "arknziel":
+                mode = st.radio("Select mode:", ["🔥 Smart Hot", "🕶️ Solo Stealth"])
 
-        # Fallback if not enough uncommon numbers
-        if len(rare_pool) < 5:
-            rare_pool = cold_numbers
+                if mode == "🔥 Smart Hot":
+                    main = sorted(random.sample(hot + warm, 5))
+                    euro = sorted(random.sample(hot, 2))
 
-        main = sorted(random.sample(rare_pool, 5))
-        euro = sorted(random.sample([n for n in range(5, 13)], 2))  # less common euro numbers
+                elif mode == "🕶️ Solo Stealth":
+                    cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
+                    rare_pool = [n for n in cold_numbers if n > 31]
+                    if len(rare_pool) < 5:
+                        rare_pool = cold_numbers
+                    main = sorted(random.sample(rare_pool, 5))
+                    euro = sorted(random.sample([n for n in range(5, 13)], 2))
 
-        st.success(f"arknziel 🎯 {main} + {euro}")
-    elif pw:
-        st.error("❌ Incorrect password.")
+                st.success(f"arknziel 🎯 {main} + {euro}")
+
+            elif pw:
+                st.error("❌ Incorrect password.")
+
 
 else:
     st.info("ℹ️ Upload or add data below to get started.")
