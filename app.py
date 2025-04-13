@@ -96,22 +96,36 @@ if df is not None:
                     euro = sorted(random.sample(hot + warm, 2))
                 st.success(f"🎯 Pick Set {i+1}: {main} + {euro}")
 
-            # --- Arknziel Solo Pick ---
+        # --- Arknziel Solo Pick ---
         from datetime import datetime
 
         with st.expander("🔐 arknziel solo pick"):
             pw = st.text_input("Enter password", type="password")
             if pw == "arknziel":
-                mode = st.radio("Select mode:", ["🔥 Smart Hot", "🕶️ Solo Stealth"])
+                mode = st.radio("Select mode:", [
+                    "🔥 Smart Hot",
+                    "🕶️ Stealth: Birthday-Free",
+                    "🛡️ Stealth: Calendar-Aware"
+                ])
                 how_many = st.slider("How many arknziel picks?", 1, 10, 1)
 
                 for i in range(how_many):
+                    # 🔥 Smart Hot
                     if mode == "🔥 Smart Hot":
                         main = sorted(random.sample(hot + warm, 5))
                         euro = sorted(random.sample(hot, 2))
 
-                    elif mode == "🕶️ Solo Stealth":
-                        # Date-aware logic
+                    # 🕶️ Stealth: Birthday-Free (avoids 1–31 range)
+                    elif mode == "🕶️ Stealth: Birthday-Free":
+                        cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
+                        rare_pool = [n for n in cold_numbers if n > 31]
+                        if len(rare_pool) < 5:
+                            rare_pool = cold_numbers
+                        main = sorted(random.sample(rare_pool, 5))
+                        euro = sorted(random.sample(range(5, 13), 2))  # avoids 1–4 as common picks
+
+                    # 🛡️ Stealth: Calendar-Aware (avoids today’s day/month/weekday)
+                    elif mode == "🛡️ Stealth: Calendar-Aware":
                         today = datetime.today()
                         day = today.day
                         month = today.month
@@ -121,19 +135,20 @@ if df is not None:
                         avoid = {n for n in avoid if 1 <= n <= 50}
 
                         cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
-                        rare_pool = [n for n in cold_numbers if n > 31 and n not in avoid]
-
+                        rare_pool = [n for n in cold_numbers if n not in avoid]
                         if len(rare_pool) < 5:
-                            rare_pool = [n for n in cold_numbers if n not in avoid]
-
+                            rare_pool = [n for n in cold_numbers if n not in avoid or True]
                         main = sorted(random.sample(rare_pool, 5))
 
                         euro_pool = [n for n in range(1, 13) if n not in avoid]
+                        if len(euro_pool) < 2:
+                            euro_pool = list(range(1, 13))
                         euro = sorted(random.sample(euro_pool, 2))
 
                     st.success(f"arknziel 🎯 Pick {i+1}: {main} + {euro}")
             elif pw:
                 st.error("❌ Incorrect password.")
+
 
 
 
