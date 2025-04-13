@@ -139,7 +139,14 @@ if df is not None and "Numbers" in df.columns:
     num_sims = st.slider("How many picks to simulate per strategy?", 5, 50, 10, step=5)
 
     recent_draws = df.tail(num_draws)
-    past_draws = [(ast.literal_eval(row['Numbers'])[:5], ast.literal_eval(row['Numbers'])[5:]) for _, row in recent_draws.iterrows()]
+    past_draws = []
+for _, row in recent_draws.iterrows():
+    try:
+        numbers = ast.literal_eval(row['Numbers'])
+        if isinstance(numbers, list) and len(numbers) >= 7:
+            past_draws.append((numbers[:5], numbers[5:]))
+    except Exception:
+        continue
 
     strategies = {
         "🔥 Hot Only": lambda hot, warm, cold: (random.sample(hot, 5), random.sample(hot, 2)),
