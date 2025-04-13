@@ -183,3 +183,19 @@ if df is not None and "Numbers" in df.columns:
                 df_summary.loc[strat, match_type] = count
 
         st.dataframe(df_summary.astype(int))
+
+# --- Draw History Viewer ---
+st.markdown("---")
+st.title("📋 Eurojackpot Draw History")
+
+df = load_data()
+
+if df is not None:
+    df_display = df.copy()
+    df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
+    df_display = df_display.sort_values(by='Draw_Date', ascending=False)
+
+    st.dataframe(df_display[['Draw_Date', 'Numbers']].reset_index(drop=True), use_container_width=True)
+else:
+    st.info("ℹ️ No draw data available. Please upload or enter draws to see history.")
+
