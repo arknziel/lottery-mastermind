@@ -262,6 +262,49 @@ if df is not None:
 else:
     st.info("ℹ️ No draw data available. Please upload or enter draws to see history.")
 
+# --- My Entry Checker ---
+st.markdown("---")
+st.title("🎟️ My Entry Checker")
+
+df = load_data()
+
+if df is not None and "Numbers" in df.columns:
+    st.subheader("Select Your Played Numbers")
+
+    main_pool = list(range(1, 51))
+    euro_pool = list(range(1, 13))
+
+    selected_main = st.multiselect("Select 5 Main Numbers", main_pool, max_selections=5)
+    selected_euro = st.multiselect("Select 2 Euro Numbers", euro_pool, max_selections=2)
+
+    st.subheader("Select the Draw Date to Compare")
+    df_sorted = df.copy()
+    df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'], errors='coerce')
+    df_sorted = df_sorted.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+
+    draw_dates = df_sorted['Draw_Date'].dt.strftime('%Y-%m-%d').tolist()
+    selected_date = st.selectbox("Draw Date", draw_dates)
+
+    if st.button("🎯 Check My Entry"):
+        if len(selected_main) != 5 or len(selected_euro) != 2:
+            st.warning("Please select exactly 5 main numbers and 2 euro numbers.")
+        else:
+            draw_row = df_sorted[df_sorted['Draw_Date'].dt.strftime('%Y-%m-%d') == selected_date]
+            if not draw_row.empty:
+                numbers = eval(draw_row.iloc[0]['Numbers'])
+                draw_main = numbers[:5]
+                draw_euro = numbers[5:]
+
+                main_hits = len(set(selected_main) & set(draw_main))
+                euro_hits = len(set(selected_euro) & set(draw_euro))
+                st.success(f"🎯 You matched: {main_hits} main + {euro_hits} euro → `{main_hits}+{euro_hits}`")
+
+                st.info(f"Your Pick: {sorted(selected_main)} + {sorted(selected_euro)}")
+                st.info(f"Draw Result: {draw_main} + {draw_euro}")
+            else:
+                st.error("Draw date not found in data.")
+else:
+    st.info("ℹ️ Please upload or enter Eurojackpot data to use this feature.")
 
 
 
