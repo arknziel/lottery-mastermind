@@ -96,7 +96,9 @@ if df is not None:
                     euro = sorted(random.sample(hot + warm, 2))
                 st.success(f"🎯 Pick Set {i+1}: {main} + {euro}")
 
-              # --- Arknziel Solo Pick ---
+            # --- Arknziel Solo Pick ---
+        from datetime import datetime
+
         with st.expander("🔐 arknziel solo pick"):
             pw = st.text_input("Enter password", type="password")
             if pw == "arknziel":
@@ -107,17 +109,32 @@ if df is not None:
                     if mode == "🔥 Smart Hot":
                         main = sorted(random.sample(hot + warm, 5))
                         euro = sorted(random.sample(hot, 2))
+
                     elif mode == "🕶️ Solo Stealth":
+                        # Date-aware logic
+                        today = datetime.today()
+                        day = today.day
+                        month = today.month
+                        weekday = today.weekday()
+
+                        avoid = set(range(day - 1, day + 2)) | set(range(month - 1, month + 2)) | set(range(weekday, weekday + 2))
+                        avoid = {n for n in avoid if 1 <= n <= 50}
+
                         cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
-                        rare_pool = [n for n in cold_numbers if n > 31]
+                        rare_pool = [n for n in cold_numbers if n > 31 and n not in avoid]
+
                         if len(rare_pool) < 5:
-                            rare_pool = cold_numbers
+                            rare_pool = [n for n in cold_numbers if n not in avoid]
+
                         main = sorted(random.sample(rare_pool, 5))
-                        euro = sorted(random.sample([n for n in range(5, 13)], 2))
+
+                        euro_pool = [n for n in range(1, 13) if n not in avoid]
+                        euro = sorted(random.sample(euro_pool, 2))
 
                     st.success(f"arknziel 🎯 Pick {i+1}: {main} + {euro}")
             elif pw:
                 st.error("❌ Incorrect password.")
+
 
 
 else:
