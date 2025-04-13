@@ -200,21 +200,21 @@ df = load_data()
 if df is not None:
     df_display = df.copy()
 
-    # Handle missing or malformed dates
+    # Ensure the Draw_Date column is present and parsed correctly
     if 'Draw_Date' in df_display.columns:
         df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
+        df_display = df_display.dropna(subset=['Draw_Date'])  # drop invalid date rows
+        df_display = df_display.sort_values(by='Draw_Date', ascending=False)  # newest first
     else:
         df_display['Draw_Date'] = pd.NaT
 
-    # Sort by date (newest first)
-    df_display = df_display.sort_values(by='Draw_Date', ascending=False)
-
-    # Show the table
+    # Reset index and display
     st.dataframe(
         df_display[['Draw_Date', 'Numbers']].reset_index(drop=True),
         use_container_width=True
     )
 else:
     st.info("ℹ️ No draw data available. Please upload or enter draws to see history.")
+
 
 
