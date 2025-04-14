@@ -195,24 +195,27 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --- Draw History Viewer ---
+# --- Simple Eurojackpot Draw History Viewer ---
 st.markdown("---")
 st.title("📋 Eurojackpot Draw History")
 
 if df is not None:
-    if "Draw_Date" in df.columns:
-        df_display = df.copy()
+    df_display = df.copy()
+    if 'Draw_Date' in df_display.columns:
         df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
         df_display = df_display.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
 
-        if 'Main_Numbers' in df_display.columns and 'Euro_Numbers' in df_display.columns:
-            df_display['Main_Numbers'] = df_display['Main_Numbers'].apply(ast.literal_eval)
-            df_display['Euro_Numbers'] = df_display['Euro_Numbers'].apply(ast.literal_eval)
-            st.dataframe(df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
-        else:
-            st.warning("⚠️ Could not find number columns in this file.")
+        if 'Main_Numbers' not in df_display.columns or 'Euro_Numbers' not in df_display.columns:
+            df_display['Numbers'] = df_display['Numbers'].apply(ast.literal_eval)
+            df_display['Main_Numbers'] = df_display['Numbers'].apply(lambda x: x[:5])
+            df_display['Euro_Numbers'] = df_display['Numbers'].apply(lambda x: x[5:])
+
+        st.dataframe(df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
     else:
         st.warning("⚠️ Missing 'Draw_Date' column.")
+else:
+    st.info("ℹ️ Upload your Eurojackpot CSV to see history.")
+
 
 # --- Manual Draw Entry ---
 st.markdown("---")
