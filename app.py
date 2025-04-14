@@ -25,17 +25,28 @@ def get_heat_groups(freq_df):
     cold = freq_df.tail(int(total * 0.3))['Number'].tolist()
     return hot, warm, cold
 
-def load_data():
-    if os.path.exists(EURO_FILE):
-        df = pd.read_csv(EURO_FILE)
-        if "Numbers" not in df.columns and "Main_Numbers" in df.columns and "Euro_Numbers" in df.columns:
-            df["Main_Numbers"] = df["Main_Numbers"].apply(eval)
-            df["Euro_Numbers"] = df["Euro_Numbers"].apply(eval)
-            df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
+# --- Draw History Viewer ---
+st.markdown("---")
+st.title("📋 Eurojackpot Draw History")
+
+if df is not None:
+    if "Draw_Date" in df.columns:
+        df_display = df.copy()
+        df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
+        df_display = df_display.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+
+        if 'Main_Numbers' in df_display.columns and 'Euro_Numbers' in df_display.columns:
+            df_display['Main_Numbers'] = df_display['Main_Numbers'].apply(ast.literal_eval)
+            df_display['Euro_Numbers'] = df_display['Euro_Numbers'].apply(ast.literal_eval)
+            st.dataframe(
+                df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True),
+                use_container_width=True
+            )
         else:
-            df["Numbers"] = df["Numbers"].apply(eval)
-        return df
-    return None
+            st.warning("⚠️ Could not find number columns in this file.")
+    else:
+        st.warning("⚠️ Missing 'Draw_Date' column.")
+
 
 def save_played_pick(main, euro, strategy):
     pick_str = f"{sorted(main)} + {sorted(euro)}"
