@@ -116,7 +116,6 @@ if df is not None:
                 save_played_pick(main, euro, strategy)
                 st.info(f"Saved: {main} + {euro} under {strategy}")
 
-
 import streamlit as st
 import pandas as pd
 import random
