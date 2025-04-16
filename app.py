@@ -12,7 +12,6 @@ st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
 EURO_FILE = "eurojackpot_master_data.csv"
 PLAYED_FILE = "played_picks.csv"
 
-# --- Helpers ---
 def analyze_frequency(df):
     all_numbers = list(itertools.chain.from_iterable(df['Numbers']))
     freq = pd.DataFrame(Counter(all_numbers).items(), columns=['Number', 'Frequency']).sort_values(by='Frequency', ascending=False)
@@ -54,10 +53,8 @@ def save_played_pick(main, euro, strategy):
         updated = new_row
     updated.to_csv(PLAYED_FILE, index=False)
 
-# --- Load Data ---
 df = load_data()
 
-# --- App Body ---
 st.title("🎯 Eurojackpot Mastermind")
 
 st.subheader("📤 Upload Eurojackpot CSV")
@@ -129,7 +126,6 @@ with st.expander("🔐 arknziel solo pick"):
             if mode == "🔥 Smart Hot":
                 main = sorted(random.sample(hot + warm, 5))
                 euro = sorted(random.sample(range(1, 13), 2))
-
             elif mode == "🕶️ Stealth: Birthday-Free":
                 cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
                 rare_pool = [n for n in cold_numbers if n > 31]
@@ -137,13 +133,9 @@ with st.expander("🔐 arknziel solo pick"):
                     rare_pool = cold_numbers
                 main = sorted(random.sample(rare_pool, 5))
                 euro = sorted(random.sample(range(5, 13), 2))
-
             elif mode == "🛡️ Stealth: Calendar-Aware":
                 today = datetime.today()
-                day = today.day
-                month = today.month
-                weekday = today.weekday()
-                avoid = set(range(day - 1, day + 2)) | set(range(month - 1, month + 2)) | set(range(weekday, weekday + 2))
+                avoid = set(range(today.day - 1, today.day + 2)) | set(range(today.month - 1, today.month + 2)) | set(range(today.weekday(), today.weekday() + 2))
                 avoid = {n for n in avoid if 1 <= n <= 50}
                 cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
                 rare_pool = [n for n in cold_numbers if n not in avoid]
@@ -154,23 +146,43 @@ with st.expander("🔐 arknziel solo pick"):
                 if len(euro_pool) < 2:
                     euro_pool = list(range(1, 13))
                 euro = sorted(random.sample(euro_pool, 2))
-
             st.success(f"arknziel 🎯 Pick {i+1}: {main} + {euro}")
     elif pw:
         st.error("❌ Incorrect password.")
 
-# --- My Entry Checker ---
+# --- Manual Draw Entry ---
+st.markdown("---")
+st.title("➕ Add Latest Eurojackpot Draw")
+
+with st.form("manual_draw_entry"):
+    draw_date = st.date_input("Draw Date")
+    cols = st.columns(5)
+    main_numbers = [col.number_input(f"Main {i+1}", 1, 50, key=f"main_{i}") for i, col in enumerate(cols)]
+    euro_cols = st.columns(2)
+    euro_numbers = [col.number_input(f"Euro {i+1}", 1, 12, key=f"euro_{i}") for i, col in enumerate(euro_cols)]
+    if st.form_submit_button("➕ Add Draw"):
+        new_row = pd.DataFrame([{
+            "Draw_Date": draw_date.strftime("%d.%m.%Y"),
+            "Main_Numbers": str(sorted(main_numbers)),
+            "Euro_Numbers": str(sorted(euro_numbers)),
+            "Numbers": str(sorted(main_numbers + euro_numbers))
+        }])
+        if os.path.exists(EURO_FILE):
+            existing = pd.read_csv(EURO_FILE)
+            updated = pd.concat([existing, new_row], ignore_index=True)
+        else:
+            updated = new_row
+        updated.to_csv(EURO_FILE, index=False)
+        st.success("✅ Draw added successfully!")
+
+# --- Entry Checker ---
 st.markdown("---")
 st.title("🎟️ My Entry Checker")
 
 if df is not None and "Numbers" in df.columns:
     st.subheader("Select Your Played Numbers")
-    main_pool = list(range(1, 51))
-    euro_pool = list(range(1, 13))
-    selected_main = st.multiselect("Select 5 Main Numbers", main_pool, max_selections=5)
-    selected_euro = st.multiselect("Select 2 Euro Numbers", euro_pool, max_selections=2)
-
-    st.subheader("Select the Draw Date to Compare")
+    selected_main = st.multiselect("Select 5 Main Numbers", list(range(1, 51)), max_selections=5)
+    selected_euro = st.multiselect("Select 2 Euro Numbers", list(range(1, 13)), max_selections=2)
     df_sorted = df.copy()
     df_sorted['Draw_Date'] = df_sorted['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
     df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'], format="%d.%m.%Y", errors='coerce')
@@ -195,70 +207,33 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --------- Optional CSV Upload ---------
-st.subheader("📂 Or Upload New Draws (CSV)")
-uploaded_file = st.file_uploader("Upload your new draw data", type=["csv"])
-if uploaded_file:
-    try:
-        new_df = pd.read_csv(uploaded_file)
-        if 'Draw_Date' in new_df.columns and 'Main_Numbers' in new_df.columns and 'Euro_Numbers' in new_df.columns:
-            master_df = merge_new_draws(master_df, new_df)
-            master_df.to_csv(MASTER_FILE, index=False)
-            master_df = load_master_data()
-            st.success("✅ Uploaded CSV merged and saved!")
-        else:
-            st.error("CSV must include Draw_Date, Main_Numbers, and Euro_Numbers")
-    except Exception as e:
-        st.error(f"⚠️ Error reading CSV: {e}")
-
-# --------- Data View & Tools ---------
-st.subheader("📅 All Draw Data (Chronologically Sorted)")
-st.dataframe(master_df)
-
-# --- Manual Draw Entry ---
+# --- Draw History Viewer ---
 st.markdown("---")
-st.title("➕ Add Latest Eurojackpot Draw")
+st.title("📋 Eurojackpot Draw History")
 
-with st.form("manual_draw_entry"):
-    draw_date = st.date_input("Draw Date")
-    cols = st.columns(5)
-    main_numbers = [col.number_input(f"Main {i+1}", 1, 50, key=f"main_{i}") for i, col in enumerate(cols)]
-    euro_cols = st.columns(2)
-    euro_numbers = [col.number_input(f"Euro {i+1}", 1, 12, key=f"euro_{i}") for i, col in enumerate(euro_cols)]
+if os.path.exists(EURO_FILE):
+    df_draws = pd.read_csv(EURO_FILE)
+    df_draws['Draw_Date'] = df_draws['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
+    df_draws['Draw_Date'] = pd.to_datetime(df_draws['Draw_Date'], format="%d.%m.%Y", errors='coerce')
+    df_draws = df_draws.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+    if 'Main_Numbers' not in df_draws.columns or 'Euro_Numbers' not in df_draws.columns:
+        df_draws['Numbers'] = df_draws['Numbers'].apply(ast.literal_eval)
+        df_draws['Main_Numbers'] = df_draws['Numbers'].apply(lambda x: x[:5])
+        df_draws['Euro_Numbers'] = df_draws['Numbers'].apply(lambda x: x[5:])
+    st.dataframe(df_draws[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
 
-    if st.form_submit_button("➕ Add Draw"):
-        new_row = pd.DataFrame([{
-            "Draw_Date": draw_date.strftime("%d.%m.%Y"),
-            "Main_Numbers": str(sorted(main_numbers)),
-            "Euro_Numbers": str(sorted(euro_numbers)),
-            "Numbers": str(sorted(main_numbers + euro_numbers))
-        }])
-        if os.path.exists(EURO_FILE):
-            existing = pd.read_csv(EURO_FILE)
-            updated = pd.concat([existing, new_row], ignore_index=True)
-        else:
-            updated = new_row
-        updated.to_csv(EURO_FILE, index=False)
-        st.success("✅ Draw added successfully!")
-
-# --- View & Manage Saved Picks ---
+# --- Saved Picks Table with Filter and Delete ---
 st.markdown("---")
 st.title("📁 My Saved Picks")
 
 if os.path.exists(PLAYED_FILE):
     saved_df = pd.read_csv(PLAYED_FILE)
     saved_df = saved_df.sort_values(by='Date', ascending=False).reset_index(drop=True)
-
-    # 🎯 Filter by strategy
     all_strategies = saved_df['Strategy'].unique().tolist()
     selected_strategy = st.selectbox("Filter by strategy", ["All"] + all_strategies)
-
     if selected_strategy != "All":
         saved_df = saved_df[saved_df['Strategy'] == selected_strategy]
-
     st.dataframe(saved_df, use_container_width=True)
-
-    # 🗑️ Deletion
     pick_to_delete = st.selectbox("Select a pick to delete", saved_df['Pick'].tolist())
     if st.button("🗑️ Delete This Pick"):
         new_df = saved_df[saved_df['Pick'] != pick_to_delete]
