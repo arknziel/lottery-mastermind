@@ -195,23 +195,6 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --- Eurojackpot Draw History ---
-st.markdown("---")
-st.title("📋 Eurojackpot Draw History")
-
-if df is not None:
-    df_display = df.copy()
-    df_display['Draw_Date'] = df_display['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\\.\\s*", "", regex=True)
-    df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], format="%d.%m.%Y", errors='coerce')
-    df_display = df_display.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
-
-    if 'Main_Numbers' not in df_display.columns or 'Euro_Numbers' not in df_display.columns:
-        df_display['Numbers'] = df_display['Numbers'].apply(ast.literal_eval)
-        df_display['Main_Numbers'] = df_display['Numbers'].apply(lambda x: x[:5])
-        df_display['Euro_Numbers'] = df_display['Numbers'].apply(lambda x: x[5:])
-
-    st.dataframe(df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
-
 # --- Manual Draw Entry ---
 st.markdown("---")
 st.title("➕ Add Latest Eurojackpot Draw")
