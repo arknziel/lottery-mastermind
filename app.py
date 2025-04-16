@@ -195,6 +195,25 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
+# --- Live Draw History Table (Auto-updating) ---
+st.markdown("---")
+st.title("📊 All Draw Data (Live Table)")
+
+if os.path.exists(EURO_FILE):
+    df_draws = pd.read_csv(EURO_FILE)
+    
+    if 'Main_Numbers' not in df_draws.columns or 'Euro_Numbers' not in df_draws.columns:
+        df_draws['Numbers'] = df_draws['Numbers'].apply(ast.literal_eval)
+        df_draws['Main_Numbers'] = df_draws['Numbers'].apply(lambda x: x[:5])
+        df_draws['Euro_Numbers'] = df_draws['Numbers'].apply(lambda x: x[5:])
+    
+    df_draws['Draw_Date'] = pd.to_datetime(df_draws['Draw_Date'], errors='coerce')
+    df_draws = df_draws.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+
+    st.dataframe(df_draws[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
+else:
+    st.warning("⚠️ No draw file found yet. Upload or add a draw above.")
+
 # --- Manual Draw Entry ---
 st.markdown("---")
 st.title("➕ Add Latest Eurojackpot Draw")
