@@ -195,37 +195,6 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --------- Manual Entry Form ---------
-st.subheader("✍️ Add New Draw Manually")
-
-with st.form("manual_entry_form"):
-    draw_date = st.date_input("Draw Date", value=date.today())
-    col1, col2, col3, col4, col5 = st.columns(5)
-    main_numbers = [
-        col1.number_input("Main 1", 1, 50, key="m1"),
-        col2.number_input("Main 2", 1, 50, key="m2"),
-        col3.number_input("Main 3", 1, 50, key="m3"),
-        col4.number_input("Main 4", 1, 50, key="m4"),
-        col5.number_input("Main 5", 1, 50, key="m5")
-    ]
-    col6, col7 = st.columns(2)
-    euro_numbers = [
-        col6.number_input("Euro 1", 1, 12, key="e1"),
-        col7.number_input("Euro 2", 1, 12, key="e2")
-    ]
-    submitted = st.form_submit_button("➕ Add Draw")
-
-if submitted:
-    new_row = pd.DataFrame([{
-        "Draw_Date": str(draw_date),
-        "Main_Numbers": str(sorted(main_numbers)),
-        "Euro_Numbers": str(sorted(euro_numbers))
-    }])
-    master_df = merge_new_draws(master_df, new_row)
-    master_df.to_csv(MASTER_FILE, index=False)
-    master_df = load_master_data()
-    st.success("✅ Draw added and saved!")
-
 # --------- Optional CSV Upload ---------
 st.subheader("📂 Or Upload New Draws (CSV)")
 uploaded_file = st.file_uploader("Upload your new draw data", type=["csv"])
