@@ -220,3 +220,29 @@ with st.form("manual_draw_entry"):
             updated = new_row
         updated.to_csv(EURO_FILE, index=False)
         st.success("✅ Draw added successfully!")
+
+# --- View & Manage Saved Picks ---
+st.markdown("---")
+st.title("📁 My Saved Picks")
+
+if os.path.exists(PLAYED_FILE):
+    saved_df = pd.read_csv(PLAYED_FILE)
+    saved_df = saved_df.sort_values(by='Date', ascending=False).reset_index(drop=True)
+
+    # 🎯 Filter by strategy
+    all_strategies = saved_df['Strategy'].unique().tolist()
+    selected_strategy = st.selectbox("Filter by strategy", ["All"] + all_strategies)
+
+    if selected_strategy != "All":
+        saved_df = saved_df[saved_df['Strategy'] == selected_strategy]
+
+    st.dataframe(saved_df, use_container_width=True)
+
+    # 🗑️ Deletion
+    pick_to_delete = st.selectbox("Select a pick to delete", saved_df['Pick'].tolist())
+    if st.button("🗑️ Delete This Pick"):
+        new_df = saved_df[saved_df['Pick'] != pick_to_delete]
+        new_df.to_csv(PLAYED_FILE, index=False)
+        st.success("✅ Pick deleted successfully! Please reload to see updated table.")
+else:
+    st.info("No saved picks found yet. Use the '✅ I Played This' button to track them.")
