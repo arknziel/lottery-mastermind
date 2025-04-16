@@ -195,24 +195,56 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --- Live Draw History Table (Auto-updating) ---
-st.markdown("---")
-st.title("📊 All Draw Data (Live Table)")
+# --------- Manual Entry Form ---------
+st.subheader("✍️ Add New Draw Manually")
 
-if os.path.exists(EURO_FILE):
-    df_draws = pd.read_csv(EURO_FILE)
-    
-    if 'Main_Numbers' not in df_draws.columns or 'Euro_Numbers' not in df_draws.columns:
-        df_draws['Numbers'] = df_draws['Numbers'].apply(ast.literal_eval)
-        df_draws['Main_Numbers'] = df_draws['Numbers'].apply(lambda x: x[:5])
-        df_draws['Euro_Numbers'] = df_draws['Numbers'].apply(lambda x: x[5:])
-    
-    df_draws['Draw_Date'] = pd.to_datetime(df_draws['Draw_Date'], errors='coerce')
-    df_draws = df_draws.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+with st.form("manual_entry_form"):
+    draw_date = st.date_input("Draw Date", value=date.today())
+    col1, col2, col3, col4, col5 = st.columns(5)
+    main_numbers = [
+        col1.number_input("Main 1", 1, 50, key="m1"),
+        col2.number_input("Main 2", 1, 50, key="m2"),
+        col3.number_input("Main 3", 1, 50, key="m3"),
+        col4.number_input("Main 4", 1, 50, key="m4"),
+        col5.number_input("Main 5", 1, 50, key="m5")
+    ]
+    col6, col7 = st.columns(2)
+    euro_numbers = [
+        col6.number_input("Euro 1", 1, 12, key="e1"),
+        col7.number_input("Euro 2", 1, 12, key="e2")
+    ]
+    submitted = st.form_submit_button("➕ Add Draw")
 
-    st.dataframe(df_draws[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
-else:
-    st.warning("⚠️ No draw file found yet. Upload or add a draw above.")
+if submitted:
+    new_row = pd.DataFrame([{
+        "Draw_Date": str(draw_date),
+        "Main_Numbers": str(sorted(main_numbers)),
+        "Euro_Numbers": str(sorted(euro_numbers))
+    }])
+    master_df = merge_new_draws(master_df, new_row)
+    master_df.to_csv(MASTER_FILE, index=False)
+    master_df = load_master_data()
+    st.success("✅ Draw added and saved!")
+
+# --------- Optional CSV Upload ---------
+st.subheader("📂 Or Upload New Draws (CSV)")
+uploaded_file = st.file_uploader("Upload your new draw data", type=["csv"])
+if uploaded_file:
+    try:
+        new_df = pd.read_csv(uploaded_file)
+        if 'Draw_Date' in new_df.columns and 'Main_Numbers' in new_df.columns and 'Euro_Numbers' in new_df.columns:
+            master_df = merge_new_draws(master_df, new_df)
+            master_df.to_csv(MASTER_FILE, index=False)
+            master_df = load_master_data()
+            st.success("✅ Uploaded CSV merged and saved!")
+        else:
+            st.error("CSV must include Draw_Date, Main_Numbers, and Euro_Numbers")
+    except Exception as e:
+        st.error(f"⚠️ Error reading CSV: {e}")
+
+# --------- Data View & Tools ---------
+st.subheader("📅 All Draw Data (Chronologically Sorted)")
+st.dataframe(master_df)
 
 # --- Manual Draw Entry ---
 st.markdown("---")
