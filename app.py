@@ -32,7 +32,14 @@ def load_data():
             df["Euro_Numbers"] = df["Euro_Numbers"].apply(ast.literal_eval)
             df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
         else:
-            df["Numbers"] = df["Numbers"].apply(ast.literal_eval)
+            def safe_parse(x):
+    try:
+        return ast.literal_eval(x)
+    except Exception:
+        return []
+
+df["Numbers"] = df["Numbers"].astype(str).apply(safe_parse)
+
         return df
     return None
 
