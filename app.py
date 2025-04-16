@@ -87,7 +87,6 @@ if df is not None:
             "⚖️ Balanced", "🎯 Small Win Strategy", "🛡️ Minimum Prize Guaranteed"
         ])
         num_picks = st.slider("🔁 How many picks do you want?", 1, 10, 1)
-
         euro_pool = list(range(1, 13))
 
         for i in range(num_picks):
@@ -173,7 +172,8 @@ if df is not None and "Numbers" in df.columns:
 
     st.subheader("Select the Draw Date to Compare")
     df_sorted = df.copy()
-    df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'], errors='coerce')
+    df_sorted['Draw_Date'] = df_sorted['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
+    df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'], format="%d.%m.%Y", errors='coerce')
     df_sorted = df_sorted.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
     draw_dates = df_sorted['Draw_Date'].dt.strftime('%Y-%m-%d').tolist()
     selected_date = st.selectbox("Draw Date", draw_dates)
@@ -195,27 +195,22 @@ if df is not None and "Numbers" in df.columns:
             else:
                 st.error("Draw date not found in data.")
 
-# --- Simple Eurojackpot Draw History Viewer ---
+# --- Eurojackpot Draw History ---
 st.markdown("---")
 st.title("📋 Eurojackpot Draw History")
 
 if df is not None:
     df_display = df.copy()
-    if 'Draw_Date' in df_display.columns:
-        df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], errors='coerce')
-        df_display = df_display.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
+    df_display['Draw_Date'] = df_display['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\\.\\s*", "", regex=True)
+    df_display['Draw_Date'] = pd.to_datetime(df_display['Draw_Date'], format="%d.%m.%Y", errors='coerce')
+    df_display = df_display.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
 
-        if 'Main_Numbers' not in df_display.columns or 'Euro_Numbers' not in df_display.columns:
-            df_display['Numbers'] = df_display['Numbers'].apply(ast.literal_eval)
-            df_display['Main_Numbers'] = df_display['Numbers'].apply(lambda x: x[:5])
-            df_display['Euro_Numbers'] = df_display['Numbers'].apply(lambda x: x[5:])
+    if 'Main_Numbers' not in df_display.columns or 'Euro_Numbers' not in df_display.columns:
+        df_display['Numbers'] = df_display['Numbers'].apply(ast.literal_eval)
+        df_display['Main_Numbers'] = df_display['Numbers'].apply(lambda x: x[:5])
+        df_display['Euro_Numbers'] = df_display['Numbers'].apply(lambda x: x[5:])
 
-        st.dataframe(df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
-    else:
-        st.warning("⚠️ Missing 'Draw_Date' column.")
-else:
-    st.info("ℹ️ Upload your Eurojackpot CSV to see history.")
-
+    st.dataframe(df_display[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
 
 # --- Manual Draw Entry ---
 st.markdown("---")
@@ -230,7 +225,7 @@ with st.form("manual_draw_entry"):
 
     if st.form_submit_button("➕ Add Draw"):
         new_row = pd.DataFrame([{
-            "Draw_Date": str(draw_date),
+            "Draw_Date": draw_date.strftime("%d.%m.%Y"),
             "Main_Numbers": str(sorted(main_numbers)),
             "Euro_Numbers": str(sorted(euro_numbers)),
             "Numbers": str(sorted(main_numbers + euro_numbers))
