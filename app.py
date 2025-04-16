@@ -24,6 +24,12 @@ def get_heat_groups(freq_df):
     cold = freq_df.tail(int(total * 0.3))['Number'].tolist()
     return hot, warm, cold
 
+def safe_parse(x):
+    try:
+        return ast.literal_eval(x)
+    except Exception:
+        return []
+
 def load_data():
     if os.path.exists(EURO_FILE):
         df = pd.read_csv(EURO_FILE)
@@ -32,11 +38,9 @@ def load_data():
             df["Euro_Numbers"] = df["Euro_Numbers"].apply(ast.literal_eval)
             df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
         else:
-            def safe_parse(x):
-    try:
-        return ast.literal_eval(x)
-    except Exception:
-        return []
+            df["Numbers"] = df["Numbers"].astype(str).apply(safe_parse)
+        return df
+    return None
 
 df["Numbers"] = df["Numbers"].astype(str).apply(safe_parse)
 
