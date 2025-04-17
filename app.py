@@ -15,14 +15,17 @@ PLAYED_FILE = "played_picks.csv"
 def load_data():
     if os.path.exists(EURO_FILE):
         df = pd.read_csv(EURO_FILE)
-        if "Numbers" not in df.columns and "Main_Numbers" in df.columns and "Euro_Numbers" in df.columns:
+        if "Numbers" in df.columns:
+            df["Numbers"] = df["Numbers"].apply(ast.literal_eval)
+            df["Main_Numbers"] = df["Numbers"].apply(lambda x: x[:5])
+            df["Euro_Numbers"] = df["Numbers"].apply(lambda x: x[5:])
+        elif "Main_Numbers" in df.columns and "Euro_Numbers" in df.columns:
             df["Main_Numbers"] = df["Main_Numbers"].apply(ast.literal_eval)
             df["Euro_Numbers"] = df["Euro_Numbers"].apply(ast.literal_eval)
             df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
         else:
-            df["Numbers"] = df["Numbers"].apply(ast.literal_eval)
-            df["Main_Numbers"] = df["Numbers"].apply(lambda x: x[:5])
-            df["Euro_Numbers"] = df["Numbers"].apply(lambda x: x[5:])
+            st.error("❌ CSV must contain 'Numbers' or both 'Main_Numbers' and 'Euro_Numbers'")
+            return None
         return df
     return None
 
