@@ -7,7 +7,7 @@ from datetime import datetime
 from collections import Counter
 import itertools
 
-st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
+st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")  # 👈 Must be FIRST
 
 EURO_FILE = "eurojackpot_master_data.csv"
 PLAYED_FILE = "played_picks.csv"
