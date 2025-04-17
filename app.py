@@ -1,5 +1,5 @@
-st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
 import streamlit as st
+st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
 import pandas as pd
 import random
 import ast
