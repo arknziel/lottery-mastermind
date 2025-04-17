@@ -1,34 +1,16 @@
 import streamlit as st
 import pandas as pd
 import random
-import itertools
-from collections import Counter
-from datetime import datetime
-import os
 import ast
+import os
+from datetime import datetime
+from collections import Counter
+import itertools
 
 st.set_page_config(page_title="🎯 Eurojackpot Mastermind", layout="centered")
 
 EURO_FILE = "eurojackpot_master_data.csv"
 PLAYED_FILE = "played_picks.csv"
-
-def analyze_frequency(df):
-    all_numbers = list(itertools.chain.from_iterable(df['Numbers']))
-    freq = pd.DataFrame(Counter(all_numbers).items(), columns=['Number', 'Frequency']).sort_values(by='Frequency', ascending=False)
-    return freq
-
-def get_heat_groups(freq_df):
-    total = len(freq_df)
-    hot = freq_df.head(int(total * 0.15))['Number'].tolist()
-    warm = freq_df.iloc[int(total * 0.15):int(total * 0.5)]['Number'].tolist()
-    cold = freq_df.tail(int(total * 0.3))['Number'].tolist()
-    return hot, warm, cold
-
-def safe_parse(x):
-    try:
-        return ast.literal_eval(x)
-    except Exception:
-        return []
 
 def load_data():
     if os.path.exists(EURO_FILE):
@@ -38,9 +20,25 @@ def load_data():
             df["Euro_Numbers"] = df["Euro_Numbers"].apply(ast.literal_eval)
             df["Numbers"] = df["Main_Numbers"] + df["Euro_Numbers"]
         else:
-            df["Numbers"] = df["Numbers"].astype(str).apply(safe_parse)
+            df["Numbers"] = df["Numbers"].apply(ast.literal_eval)
+            df["Main_Numbers"] = df["Numbers"].apply(lambda x: x[:5])
+            df["Euro_Numbers"] = df["Numbers"].apply(lambda x: x[5:])
         return df
     return None
+
+def analyze_frequency(df):
+    all_main = list(itertools.chain.from_iterable(df['Main_Numbers']))
+    all_euro = list(itertools.chain.from_iterable(df['Euro_Numbers']))
+    main_freq = pd.Series(Counter(all_main)).sort_values(ascending=False)
+    euro_freq = pd.Series(Counter(all_euro)).sort_values(ascending=False)
+    return main_freq, euro_freq
+
+def get_heat_groups(freq_series):
+    total = len(freq_series)
+    hot = freq_series.head(int(total * 0.15)).index.tolist()
+    warm = freq_series.iloc[int(total * 0.15):int(total * 0.5)].index.tolist()
+    cold = freq_series.tail(int(total * 0.3)).index.tolist()
+    return hot, warm, cold
 
 def save_played_pick(main, euro, strategy):
     pick_str = f"{sorted(main)} + {sorted(euro)}"
@@ -60,10 +58,6 @@ def save_played_pick(main, euro, strategy):
     updated.to_csv(PLAYED_FILE, index=False)
 
 df = load_data()
-
-# The rest of the app will be appended below
-
-
 st.title("🎯 Eurojackpot Mastermind")
 
 st.subheader("📤 Upload Eurojackpot CSV")
@@ -76,11 +70,14 @@ if ej_file:
 
 if df is not None:
     if st.button("📊 Run Frequency Analysis"):
-        freq = analyze_frequency(df)
-        st.session_state["freq"] = freq
+        main_freq, euro_freq = analyze_frequency(df)
+        st.session_state["main_freq"] = main_freq
+        st.session_state["euro_freq"] = euro_freq
 
-    if "freq" in st.session_state:
-        hot, warm, cold = get_heat_groups(st.session_state["freq"])
+    if "main_freq" in st.session_state:
+        main_freq = st.session_state["main_freq"]
+        euro_freq = st.session_state["euro_freq"]
+        hot, warm, cold = get_heat_groups(main_freq)
 
         st.subheader("🔥 Heat Analyzer")
         st.write(f"🔥 Hot: {hot}")
@@ -98,22 +95,17 @@ if df is not None:
         for i in range(num_picks):
             if strategy == "🔥 Hot Only":
                 main = sorted(random.sample(hot, 5))
-                euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🟡 Warm Only":
                 main = sorted(random.sample(warm, 5))
-                euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "❄️ Cold Only":
                 main = sorted(random.sample(cold, 5))
-                euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "⚖️ Balanced":
                 main = sorted(random.sample(hot, 2) + random.sample(warm, 2) + random.sample(cold, 1))
-                euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🎯 Small Win Strategy":
                 main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
-                euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🛡️ Minimum Prize Guaranteed":
                 main = sorted(random.sample(hot + warm, 5))
-                euro = sorted(random.sample(euro_pool, 2))
+            euro = sorted(random.sample(euro_pool, 2))
 
             st.success(f"🎯 Pick {i+1}: {main} + {euro}")
             if st.button(f"✅ I Played This (Pick {i+1})", key=f"save_{i}_{strategy}"):
@@ -136,20 +128,18 @@ with st.expander("🔐 arknziel solo pick"):
                 main = sorted(random.sample(hot + warm, 5))
                 euro = sorted(random.sample(range(1, 13), 2))
             elif mode == "🕶️ Stealth: Birthday-Free":
-                cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
-                rare_pool = [n for n in cold_numbers if n > 31]
+                rare_pool = [n for n in cold if n > 31]
                 if len(rare_pool) < 5:
-                    rare_pool = cold_numbers
+                    rare_pool = cold
                 main = sorted(random.sample(rare_pool, 5))
                 euro = sorted(random.sample(range(5, 13), 2))
             elif mode == "🛡️ Stealth: Calendar-Aware":
                 today = datetime.today()
-                avoid = set(range(today.day - 1, today.day + 2)) | set(range(today.month - 1, today.month + 2)) | set(range(today.weekday(), today.weekday() + 2))
+                avoid = {today.day, today.month, today.weekday()+1}
                 avoid = {n for n in avoid if 1 <= n <= 50}
-                cold_numbers = st.session_state["freq"].tail(30)['Number'].tolist()
-                rare_pool = [n for n in cold_numbers if n not in avoid]
+                rare_pool = [n for n in cold if n not in avoid]
                 if len(rare_pool) < 5:
-                    rare_pool = cold_numbers
+                    rare_pool = cold
                 main = sorted(random.sample(rare_pool, 5))
                 euro_pool = [n for n in range(1, 13) if n not in avoid]
                 if len(euro_pool) < 2:
@@ -158,7 +148,6 @@ with st.expander("🔐 arknziel solo pick"):
             st.success(f"arknziel 🎯 Pick {i+1}: {main} + {euro}")
     elif pw:
         st.error("❌ Incorrect password.")
-
 # --- Manual Draw Entry ---
 st.markdown("---")
 st.title("➕ Add Latest Eurojackpot Draw")
@@ -193,8 +182,7 @@ if df is not None and "Numbers" in df.columns:
     selected_main = st.multiselect("Select 5 Main Numbers", list(range(1, 51)), max_selections=5)
     selected_euro = st.multiselect("Select 2 Euro Numbers", list(range(1, 13)), max_selections=2)
     df_sorted = df.copy()
-    df_sorted['Draw_Date'] = df_sorted['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
-    df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'], format="%d.%m.%Y", errors='coerce')
+    df_sorted['Draw_Date'] = pd.to_datetime(df_sorted['Draw_Date'].str.extract(r'(\d{2}\.\d{2}\.\d{4})')[0], format="%d.%m.%Y", errors='coerce')
     df_sorted = df_sorted.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
     draw_dates = df_sorted['Draw_Date'].dt.strftime('%Y-%m-%d').tolist()
     selected_date = st.selectbox("Draw Date", draw_dates)
@@ -222,16 +210,16 @@ st.title("📋 Eurojackpot Draw History")
 
 if os.path.exists(EURO_FILE):
     df_draws = pd.read_csv(EURO_FILE)
-    df_draws['Draw_Date'] = df_draws['Draw_Date'].str.replace(r"^[A-Za-zäöüÄÖÜ]{2,3}\.\s*", "", regex=True)
+    df_draws['Draw_Date'] = df_draws['Draw_Date'].str.extract(r'(\d{2}\.\d{2}\.\d{4})')[0]
     df_draws['Draw_Date'] = pd.to_datetime(df_draws['Draw_Date'], format="%d.%m.%Y", errors='coerce')
     df_draws = df_draws.dropna(subset=['Draw_Date']).sort_values(by='Draw_Date', ascending=False)
     if 'Main_Numbers' not in df_draws.columns or 'Euro_Numbers' not in df_draws.columns:
         df_draws['Numbers'] = df_draws['Numbers'].apply(ast.literal_eval)
         df_draws['Main_Numbers'] = df_draws['Numbers'].apply(lambda x: x[:5])
         df_draws['Euro_Numbers'] = df_draws['Numbers'].apply(lambda x: x[5:])
-    st.dataframe(df_draws[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']].reset_index(drop=True), use_container_width=True)
+    st.dataframe(df_draws[['Draw_Date', 'Main_Numbers', 'Euro_Numbers']], use_container_width=True)
 
-# --- Saved Picks Table with Filter and Delete ---
+# --- Saved Picks Viewer + Delete ---
 st.markdown("---")
 st.title("📁 My Saved Picks")
 
