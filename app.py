@@ -117,6 +117,31 @@ df = load_data()
 
 st.title("🎯 Eurojackpot Mastermind")
 
+# --- 🏆 Best Combo Strategy (1 Hermes + 4 Prize Ladder) ---
+st.markdown("---")
+st.header("🏆 Best Combo Strategy (1 Hermes + 4 Prize Ladder)")
+st.markdown("This section generates **5 smart picks per session**: **1 Hermes–Hybrid** + **4 Prize Ladder**.")
+
+combo_sessions = st.slider("How many sessions to generate?", 1, 10, 1, key="best_combo_sessions")
+
+if st.button("🎯 Generate Best Combo Picks", key="generate_best_combo_button"):
+    import ast
+    if isinstance(df.iloc[-1]['Main_Numbers'], str):
+        draw_main_pool = ast.literal_eval(df.iloc[-1]['Main_Numbers'])
+    else:
+        draw_main_pool = df.iloc[-1]['Main_Numbers']
+
+    for session in range(combo_sessions):
+        st.subheader(f"🎟️ Session {session + 1}")
+        # 1 Hermes Pick
+        main, euro = generate_hermes_hybrid_pick(datetime.today())
+        st.success(f"Hermes 🎯 Pick: {main} + {euro}")
+        # 4 Prize Ladder Picks
+        for j in range(4):
+            main, euro = generate_prize_ladder_pick(draw_main_pool)
+            st.info(f"Prize Ladder 📈 Pick {j + 1}: {main} + {euro}")
+
+
 st.subheader("📤 Upload Eurojackpot CSV")
 ej_file = st.file_uploader("Choose Eurojackpot CSV", type="csv", key="ej_upload")
 if ej_file:
