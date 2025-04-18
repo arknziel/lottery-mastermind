@@ -1,4 +1,30 @@
 
+# Prize Ladder number generation
+def generate_prize_ladder_pick(draw_main_pool):
+    repeat_pool = list(set(draw_main_pool))  # Set of numbers from the latest draw for repeat inclusion
+    pool = list(range(1, 51))  # Possible pool of numbers (1-50)
+
+    tries = 0
+    while tries < 100:
+        repeat_count = random.choice([1, 2])
+        if len(repeat_pool) < repeat_count:
+            repeat_part = repeat_pool
+        else:
+            repeat_part = random.sample(repeat_pool, repeat_count)
+
+        remaining_pool = [n for n in pool if n not in repeat_part]
+        full_candidate = repeat_part + random.sample(remaining_pool, 5 - len(repeat_part))
+        full_candidate = sorted(full_candidate)
+
+        total_sum = sum(full_candidate)
+        even_count = sum(1 for n in full_candidate if n % 2 == 0)
+        if 100 <= total_sum <= 140 and 2 <= even_count <= 3:
+            return full_candidate, sorted(random.sample(range(1, 13), 2))
+        tries += 1
+
+    return sorted(random.sample(pool, 5)), sorted(random.sample(range(1, 13), 2))
+
+
 # Ensure the function for Hermes-Hybrid pick is defined
 import random
 from datetime import datetime
