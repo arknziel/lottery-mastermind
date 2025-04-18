@@ -92,7 +92,6 @@ if df is not None:
         strategy = st.radio("Select a strategy:", [
             "🔥 Hot Only", "🟡 Warm Only", "❄️ Cold Only",
             "⚖️ Balanced", "🎯 Small Win Strategy", "🛡️ Minimum Prize Guaranteed",
-            "🔱 Hermes Strategy"
         ])
 
         num_picks = st.slider("🔁 How many picks do you want?", 1, 10, 1)
@@ -115,7 +114,6 @@ if df is not None:
                 main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
                 euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🛡️ Minimum Prize Guaranteed":
-            "🔱 Hermes Strategy":
                 main = sorted(random.sample(hot + warm, 5))
                 euro = sorted(random.sample(euro_pool, 2))
 
