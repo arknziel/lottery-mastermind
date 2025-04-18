@@ -126,6 +126,7 @@ if df is not None:
                 st.info(f"Saved: {main} + {euro} under {strategy}")
 
 
+            
             elif strategy == "🔱 Hermes Strategy":
                 month = datetime.today().month
                 weekday = datetime.today().weekday() + 1
@@ -139,7 +140,6 @@ if df is not None:
                     5: list(range(41, 51)),
                 }
 
-                # Example weights — you can make these smarter later
                 monthly_section_weights = {
                     1: 0.1,
                     2: 0.3 if month == 4 else 0.2,
@@ -150,7 +150,6 @@ if df is not None:
 
                 selected_sections = [sec for sec, w in monthly_section_weights.items() if w >= 0.2]
                 calendar_avoid = {day, month, weekday}
-
                 cold_pool = [n for n in cold if 1 <= n <= 50]
                 hermes_pool = []
 
@@ -158,30 +157,32 @@ if df is not None:
                     nums = [n for n in section_map[sec] if n in cold_pool and n not in calendar_avoid]
                     hermes_pool.extend(nums)
 
-                # Fallback: not enough numbers? Expand with cold nums ignoring calendar filter
                 if len(hermes_pool) < 5:
                     hermes_pool = [n for sec in selected_sections for n in section_map[sec] if n in cold_pool]
 
-                # Last fallback: use all cold numbers
                 if len(hermes_pool) < 5:
                     hermes_pool = cold_pool
 
-                main_try = []
+                main = []
                 tries = 0
                 enable_bias = st.checkbox("🎯 Enable Jackpot Bias (120–160 sum)", key=f"bias_{i}_{strategy}")
                 while tries < 50:
-                    candidate = sorted(random.sample(hermes_pool, 5))
-                    if enable_bias:
-                        if 120 <= sum(candidate) <= 160:
-                            main_try = candidate
+                    if len(hermes_pool) >= 5:
+                        candidate = sorted(random.sample(hermes_pool, 5))
+                        if enable_bias:
+                            if 120 <= sum(candidate) <= 160:
+                                main = candidate
+                                break
+                        else:
+                            main = candidate
                             break
-                    else:
-                        main_try = candidate
-                        break
                     tries += 1
 
-                main = main_try
+                # Fallback if all tries fail
+                if not main:
+                    main = sorted(random.sample(cold_pool, 5))
                 euro = sorted(random.sample(euro_pool, 2))
+
 
 # --- Arknziel Solo Pick ---
 with st.expander("🔐 arknziel solo pick"):
