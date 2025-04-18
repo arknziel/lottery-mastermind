@@ -89,13 +89,11 @@ if df is not None:
 
         st.subheader("🎯 Strategy Generator")
         
-        
         strategy = st.radio("Select a strategy:", [
             "🔥 Hot Only", "🟡 Warm Only", "❄️ Cold Only",
             "⚖️ Balanced", "🎯 Small Win Strategy", "🛡️ Minimum Prize Guaranteed",
             "🔱 Hermes Strategy"
         ])
-
 
         num_picks = st.slider("🔁 How many picks do you want?", 1, 10, 1)
         euro_pool = list(range(1, 13))
@@ -117,17 +115,13 @@ if df is not None:
                 main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
                 euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🛡️ Minimum Prize Guaranteed":
+            "🔱 Hermes Strategy":
                 main = sorted(random.sample(hot + warm, 5))
                 euro = sorted(random.sample(euro_pool, 2))
 
-            st.success(f"🎯 Pick {i+1}: {main} + {euro}")
-            if st.button(f"✅ I Played This (Pick {i+1})", key=f"save_{i}_{strategy}"):
-                save_played_pick(main, euro, strategy)
-                st.info(f"Saved: {main} + {euro} under {strategy}")
+            
 
 
-            
-            
             elif strategy == "🔱 Hermes Strategy":
                 month = datetime.today().month
                 weekday = datetime.today().weekday() + 1
@@ -141,6 +135,7 @@ if df is not None:
                     5: list(range(41, 51)),
                 }
 
+                # Example weights — you can make these smarter later
                 monthly_section_weights = {
                     1: 0.1,
                     2: 0.3 if month == 4 else 0.2,
@@ -151,6 +146,7 @@ if df is not None:
 
                 selected_sections = [sec for sec, w in monthly_section_weights.items() if w >= 0.2]
                 calendar_avoid = {day, month, weekday}
+
                 cold_pool = [n for n in cold if 1 <= n <= 50]
                 hermes_pool = []
 
@@ -158,37 +154,30 @@ if df is not None:
                     nums = [n for n in section_map[sec] if n in cold_pool and n not in calendar_avoid]
                     hermes_pool.extend(nums)
 
+                # Fallback: not enough numbers? Expand with cold nums ignoring calendar filter
                 if len(hermes_pool) < 5:
                     hermes_pool = [n for sec in selected_sections for n in section_map[sec] if n in cold_pool]
 
+                # Last fallback: use all cold numbers
                 if len(hermes_pool) < 5:
                     hermes_pool = cold_pool
 
-                main = []
+                main_try = []
                 tries = 0
                 enable_bias = st.checkbox("🎯 Enable Jackpot Bias (120–160 sum)", key=f"bias_{i}_{strategy}")
                 while tries < 50:
-                    if len(hermes_pool) >= 5:
-                        candidate = sorted(random.sample(hermes_pool, 5))
-                        if enable_bias:
-                            if 120 <= sum(candidate) <= 160:
-                                main = candidate
-                                break
-                        else:
-                            main = candidate
+                    candidate = sorted(random.sample(hermes_pool, 5))
+                    if enable_bias:
+                        if 120 <= sum(candidate) <= 160:
+                            main_try = candidate
                             break
+                    else:
+                        main_try = candidate
+                        break
                     tries += 1
 
-                if not main:
-                    main = sorted(random.sample(cold_pool, 5))
+                main = main_try
                 euro = sorted(random.sample(euro_pool, 2))
-
-                st.success(f"🎯 Pick {i+1}: {main} + {euro}")
-                if st.button(f"✅ I Played This (Pick {i+1})", key=f"save_{i}_{strategy}"):
-                    save_played_pick(main, euro, strategy)
-                    st.info(f"Saved: {main} + {euro} under {strategy}")
-
-
 
 # --- Arknziel Solo Pick ---
 with st.expander("🔐 arknziel solo pick"):
