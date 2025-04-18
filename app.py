@@ -90,7 +90,7 @@ if df is not None:
         st.subheader("🎯 Strategy Generator")
         strategy = st.radio("Select a strategy:", [
             "🔥 Hot Only", "🟡 Warm Only", "❄️ Cold Only",
-            "⚖️ Balanced", "🎯 Small Win Strategy", "🛡️ Minimum Prize Guaranteed",
+            "⚖️ Balanced", "🎯 Small Win Strategy", "🛡️ Minimum Prize Guaranteed":
             "🔱 Hermes Strategy"
         ])
         num_picks = st.slider("🔁 How many picks do you want?", 1, 10, 1)
