@@ -186,23 +186,6 @@ if df is not None:
 
 
 
-# --- Best Combo Strategy (Hermes + Prize Ladder) ---
-st.markdown("---")
-st.header("🏆 Best Combo Strategy (Hermes + Prize Ladder)")
-st.markdown("This section generates 5 smart picks per session: **2 Hermes–Hybrid** + **3 Prize Ladder**.")
-
-num_sessions = st.slider("How many sessions to generate?", 1, 10, 1, key="combo_sessions")
-
-if st.button("🎯 Generate Best Combo Picks"):
-    for session in range(num_sessions):
-        st.subheader(f"🎟️ Session {session + 1}")
-        for i in range(2):  # Hermes
-            main, euro = generate_hermes_hybrid_pick(datetime.today())
-            st.success(f"Hermes 🎯 Pick {i + 1}: {main} + {euro}")
-        for i in range(3):  # Prize Ladder
-            main, euro = generate_prize_ladder_pick(df.iloc[-1]['Main_Numbers'])
-            st.info(f"Prize Ladder 📈 Pick {i + 3 + 1}: {main} + {euro}")
-
 
 
 # --- Best Combo Strategy (Hermes + Prize Ladder) Button Fix ---
@@ -354,3 +337,21 @@ if os.path.exists(PLAYED_FILE):
         st.success("✅ Pick deleted successfully! Please reload to see updated table.")
 else:
     st.info("No saved picks found yet. Use the '✅ I Played This' button to track them.")
+
+
+# --- Best Combo Strategy (Hermes + Prize Ladder) ---
+st.markdown("---")
+st.header("🏆 Best Combo Strategy (Hermes + Prize Ladder)")
+st.markdown("This section generates 5 smart picks per session: **2 Hermes–Hybrid** + **3 Prize Ladder**.")
+
+num_sessions = st.slider("How many sessions to generate?", 1, 10, 1, key="combo_sessions")
+
+if st.button("🎯 Generate Best Combo Picks"):
+    for session in range(num_sessions):
+        st.subheader(f"🎟️ Session {session + 1}")
+        for i in range(2):  # Hermes
+            main, euro = generate_hermes_hybrid_pick(datetime.today())
+            st.success(f"Hermes 🎯 Pick {i + 1}: {main} + {euro}")
+        for i in range(3):  # Prize Ladder
+            main, euro = generate_prize_ladder_pick(df.iloc[-1]['Main_Numbers'])
+            st.info(f"Prize Ladder 📈 Pick {i + 3 + 1}: {main} + {euro}")
