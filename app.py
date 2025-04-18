@@ -15,11 +15,13 @@ def generate_prize_ladder_pick(draw_main_pool):
             repeat_part = random.sample(repeat_pool, repeat_count)
 
         remaining_pool = [n for n in pool if n not in repeat_part]
-        if len(remaining_pool) < 5 - len(repeat_part):
+        needed = 5 - len(repeat_part)
+
+        if len(remaining_pool) < needed:
             tries += 1
             continue
 
-        full_candidate = repeat_part + random.sample(remaining_pool, 5 - len(repeat_part))
+        full_candidate = repeat_part + random.sample(remaining_pool, needed)
         full_candidate = sorted(full_candidate)
         total_sum = sum(full_candidate)
         even_count = sum(1 for n in full_candidate if n % 2 == 0)
