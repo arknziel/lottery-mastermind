@@ -186,8 +186,7 @@ if df is not None:
 
 
 
-# --- Best Combo Strategy (Hermes + Prize Ladder)
- ---
+# --- Best Combo Strategy (Hermes + Prize Ladder) ---
 st.markdown("---")
 st.header("🏆 Best Combo Strategy (Hermes + Prize Ladder)")
 st.markdown("This section generates 5 smart picks per session: **2 Hermes–Hybrid** + **3 Prize Ladder**.")
@@ -206,8 +205,7 @@ if st.button("🎯 Generate Best Combo Picks"):
 
 
 
-# --- Best Combo Strategy (Hermes + Prize Ladder)
- Button Fix ---
+# --- Best Combo Strategy (Hermes + Prize Ladder) Button Fix ---
 st.markdown("---")
 st.header("🏆 Best Combo Strategy (Hermes + Prize Ladder)")
 st.markdown("This section generates 5 smart picks per session: **2 Hermes–Hybrid** + **3 Prize Ladder**.")
