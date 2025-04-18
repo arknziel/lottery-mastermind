@@ -127,6 +127,7 @@ if df is not None:
 
 
             
+            
             elif strategy == "🔱 Hermes Strategy":
                 month = datetime.today().month
                 weekday = datetime.today().weekday() + 1
@@ -178,10 +179,15 @@ if df is not None:
                             break
                     tries += 1
 
-                # Fallback if all tries fail
                 if not main:
                     main = sorted(random.sample(cold_pool, 5))
                 euro = sorted(random.sample(euro_pool, 2))
+
+                st.success(f"🎯 Pick {i+1}: {main} + {euro}")
+                if st.button(f"✅ I Played This (Pick {i+1})", key=f"save_{i}_{strategy}"):
+                    save_played_pick(main, euro, strategy)
+                    st.info(f"Saved: {main} + {euro} under {strategy}")
+
 
 
 # --- Arknziel Solo Pick ---
