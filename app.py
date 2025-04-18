@@ -115,7 +115,7 @@ if df is not None:
                 main = sorted(random.sample(hot + warm, 3) + random.sample(hot + warm + cold, 2))
                 euro = sorted(random.sample(euro_pool, 2))
             elif strategy == "🛡️ Minimum Prize Guaranteed":
-            "🔱 Hermes Strategy":
+            "🔱 Hermes Strategy"
                 main = sorted(random.sample(hot + warm, 5))
                 euro = sorted(random.sample(euro_pool, 2))
 
